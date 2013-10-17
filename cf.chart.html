@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CF Chart</title>
+	<script>
+		window.__cf = __cf = window.__cf || {};
+		cf = __cf;
+	</script>
+	<script src="http://codeorigin.jquery.com/jquery-2.0.3.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+	<script src="cf.chart.js"></script>
+
+	<script>
+		
+		var chartAxisProvider = cf.ChartAxisProviders.dayChartAxisProvider;
+
+		var chart = new cf.Chart(chartAxisProvider);
+
+		// Adding value by key directly.
+		chart.setBarValue("05:00", 20);
+		chart.setBarValue("05:30", 40);
+		chart.setBarValue("23:30", 200);
+
+		// Adding by object using xAxisValue as key.
+		var bar = {
+			xAxisValue: "06:00",
+			yAxisValue: 100
+		}
+
+		chart.setBarValue(bar);
+
+		// Adding by object collection with xAxisValues being the keys.
+		var newBars = [{xAxisValue: "07:00", yAxisValue: 50}, {xAxisValue: "09:00", yAxisValue: 60}, {xAxisValue: "11:30", yAxisValue: 70}];
+		chart.setBarValues(newBars);
+
+		var bars = chart.getBars();
+		console.log(bars);
+	</script>
+</head>
+<body>
+	
+</body>
+</html>
