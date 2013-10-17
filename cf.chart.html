@@ -3,6 +3,38 @@
 <head>
 	<meta charset="UTF-8">
 	<title>CF Chart</title>
+	<style>
+		.chart{
+			height:300px;
+			border: 1px solid #999;
+			float:left;
+			padding: 5px;
+		}
+		.chart .bar{
+			display: inline-block;
+			height: 100%;
+			width: 38px;
+			position:relative;
+		}
+		.chart .barColour{
+			
+			position: absolute;
+			bottom: 0;
+			width: 38px;
+			font-size: 0.9em;
+			background-color: #00FF00;
+			min-height: 5px;
+		}
+
+		.chart .bar:hover .barColour{
+			background-color: #0000FF;
+		}
+
+		.chart span{
+			position: absolute;
+			bottom: -25px;
+		}
+	</style>
 	<script>
 		window.__cf = __cf = window.__cf || {};
 		cf = __cf;
@@ -12,7 +44,6 @@
 	<script src="cf.chart.js"></script>
 
 	<script>
-		
 		var chartAxisProvider = cf.ChartAxisProviders.dayChartAxisProvider;
 
 		var chart = new cf.Chart(chartAxisProvider);
@@ -21,8 +52,13 @@
 		chart.setBarValue("05:00", 20);
 		chart.setBarValue("05:30", 40);
 		chart.setBarValue("23:30", 200);
+		chart.setBarValue("13:00", 300);
+		chart.setBarValue("07:30", 100);
+		chart.setBarValue("18:30", 90);
+		chart.setBarValue("10:25", 50);
+		chart.setBarValue("01:00", 523);
 
-		// Adding by object using xAxisValue as key.
+				// Adding by object using xAxisValue as key.
 		var bar = {
 			xAxisValue: "06:00",
 			yAxisValue: 100
@@ -36,9 +72,12 @@
 
 		var bars = chart.getBars();
 		console.log(bars);
+
+		$(function(){ $(".chart").chartify(chart); });
 	</script>
 </head>
 <body>
-	
+	<div class="chart">
+	</div>
 </body>
 </html>

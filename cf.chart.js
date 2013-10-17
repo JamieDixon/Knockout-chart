@@ -9,7 +9,7 @@
 
     	if(chartAxisProvider === undefined)
     	{
-    		alert("You must specify a chart axist provider");
+    		alert("You must specify a chart axist provider like: new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider)");
     	}
 
     	var self = this;
@@ -22,7 +22,7 @@
     		minValue: null
     	};
 
-    	self.initialise = function()
+    	function initialise()
     	{
     		console.log("Chart initialised");
 
@@ -33,7 +33,8 @@
 			$.each(self.xAxisValues, function(index, value){
 				self.bars.push({
 	    			xAxisValue: value,
-	    			yAxisValue: null
+	    			yAxisValue: null,
+	    			yAxisValueAsPercent: null
 	    		});
 			});
     	};
@@ -97,7 +98,7 @@
     		return self.bars;
     	};
 
-    	self.initialise();
+    	initialise();
 	}
 
 	// Chart Axis Providers
@@ -132,3 +133,11 @@
 	};
 
 })(jQuery, ko, window.__cf);
+
+$.fn.chartify = function(chart){
+	var chartContainer = this;
+
+	$.each(chart.getBars(), function(index, value){
+		chartContainer.append("<div class='bar'><div class='barColour' style='height:" + value.yAxisValueAsPercent + "%'><span>" + value.xAxisValue + " | </span></div></div>");
+	});
+};
