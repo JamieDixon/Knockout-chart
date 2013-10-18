@@ -4,20 +4,21 @@
 	<meta charset="UTF-8">
 	<title>CF Chart</title>
 	<style>
-		.chart{
+		.chartified, .chartified > div{
 			height:300px;
+		}
+		.chart{
 			border: 1px solid #999;
-			float:left;
+			
 			padding: 5px;
 		}
-		.chart .bar{
+		.chartified .bar{
 			display: inline-block;
 			height: 100%;
 			width: 38px;
 			position:relative;
 		}
-		.chart .barColour{
-			
+		.chartified .barColour{
 			position: absolute;
 			bottom: 0;
 			width: 38px;
@@ -26,14 +27,21 @@
 			min-height: 5px;
 		}
 
-		.chart .bar:hover .barColour{
+		.chartified .bar:hover .barColour{
 			background-color: #0000FF;
 		}
 
-		.chart span{
+		.chartified span{
 			position: absolute;
 			bottom: -25px;
 		}
+
+		.canvasChart{
+			border: 1px solid #000;
+			margin-top: 20px;
+			padding-top: 5px;
+		}
+		.canvasChart canvas{width: 96%;}
 	</style>
 	<script>
 		window.__cf = __cf = window.__cf || {};
@@ -58,26 +66,21 @@
 		chart.setBarValue("10:25", 50);
 		chart.setBarValue("01:00", 523);
 
-				// Adding by object using xAxisValue as key.
-		var bar = {
-			xAxisValue: "06:00",
-			yAxisValue: 100
-		}
+		chart.setBarValue("02:00", 300);
+		chart.setBarValue("02:30", 175);
+		chart.setBarValue("03:00", 145);
 
-		chart.setBarValue(bar);
+		$(function(){
+			$(".chart").chartify(chart);
+			$(".canvasChart").chartify(chart, cf.ChartRenderingProviders.canvas);
+		});
 
-		// Adding by object collection with xAxisValues being the keys.
-		var newBars = [{xAxisValue: "07:00", yAxisValue: 50}, {xAxisValue: "09:00", yAxisValue: 60}, {xAxisValue: "11:30", yAxisValue: 70}];
-		chart.setBarValues(newBars);
-
-		var bars = chart.getBars();
-		console.log(bars);
-
-		$(function(){ $(".chart").chartify(chart); });
 	</script>
 </head>
 <body>
-	<div class="chart">
+	<div id="container">
+		<div class="chart"></div>
+		<div class="canvasChart"></div>
 	</div>
 </body>
 </html>

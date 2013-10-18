@@ -132,12 +132,80 @@
     	}
 	};
 
+	cf.ChartRenderingProviders = {
+		html: function(){
+				var self = this;
+				self.chartContainer = null;
+
+				self.setup = function(){
+					self.chartContainer = $("<div/>");
+				};
+
+				self.addBar = function(value){
+					self.chartContainer.append("<div class='bar'><div class='barColour' style='height:" + value.yAxisValueAsPercent + "%'><span>" + value.xAxisValue + " | </span></div></div>");
+				};
+
+				self.getChart = function(){
+					return self.chartContainer;
+				};
+
+				return self;
+		},
+		canvas: function() {
+			var self = this;
+
+			self.chartContainer = null;
+
+			self.settings = {
+				chartCanvas: null,
+				canvCtx: null,
+				leftPos: null,
+				topPos: null,
+				barWidth: 0
+			};
+
+			self.setup = function(){
+				chartContainer = $("<canvas/>");
+				self.settings.canvCtx = chartContainer[0].getContext("2d");
+				self.settings.canvCtx.canvas.height = '300';
+				self.settings.canvCtx.canvas.width = '1830';
+				self.settings.barWidth = self.settings.canvCtx.canvas.width / 48;
+				self.settings.canvCtx.fillStyle = "rgb(200, 0, 0)"; // general bar style.
+			};
+
+			self.addBar = function(value){
+				var barValue = value.yAxisValue;
+				var barHeightAsPercent = (self.settings.canvCtx.canvas.height / 100) * value.yAxisValueAsPercent;
+				var rectTop = self.settings.canvCtx.canvas.height - barHeightAsPercent;
+
+				self.settings.canvCtx.fillRect(settings.leftPos, rectTop, settings.barWidth, barHeightAsPercent);
+				self.settings.leftPos += settings.barWidth;
+			};
+
+			self.getChart = function()
+			{
+				return self.chartContainer;
+			};
+
+			return self;
+		}
+	}
+
 })(jQuery, ko, window.__cf);
 
-$.fn.chartify = function(chart){
-	var chartContainer = this;
+$.fn.chartify = function(chart, renderingProvider){
+	
+	var self = this;
+	self.addClass("chartified");
+	// if no provider specified, assume HTML.
+	renderingProvider = (renderingProvider === undefined) ? cf.ChartRenderingProviders.html : renderingProvider;
+	var provider = renderingProvider();
+	provider.setup();
 
 	$.each(chart.getBars(), function(index, value){
-		chartContainer.append("<div class='bar'><div class='barColour' style='height:" + value.yAxisValueAsPercent + "%'><span>" + value.xAxisValue + " | </span></div></div>");
+		provider.addBar(value);
 	});
+
+	self.append(provider.getChart());
 };
+
