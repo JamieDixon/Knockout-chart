@@ -15,16 +15,14 @@
 		.chartified .bar{
 			display: inline-block;
 			height: 100%;
-			width: 38px;
 			position:relative;
+			width: 30px;
 		}
 		.chartified .barColour{
 			position: absolute;
 			bottom: 0;
-			width: 38px;
 			font-size: 0.9em;
 			background-color: #00FF00;
-			min-height: 5px;
 		}
 
 		.chartified .bar:hover .barColour{
@@ -41,7 +39,7 @@
 			margin-top: 20px;
 			padding-top: 5px;
 		}
-		.canvasChart canvas{width: 96%;}
+		.barColour{width: 100%;}
 	</style>
 	<script>
 		window.__cf = __cf = window.__cf || {};
@@ -59,7 +57,6 @@
 		// Adding value by key directly.
 		chart.setBarValue("05:00", 20);
 		chart.setBarValue("05:30", 40);
-		chart.setBarValue("23:30", 200);
 		chart.setBarValue("13:00", 300);
 		chart.setBarValue("07:30", 100);
 		chart.setBarValue("18:30", 90);
@@ -70,8 +67,12 @@
 		chart.setBarValue("02:30", 175);
 		chart.setBarValue("03:00", 145);
 
+		chart.setBarValue("04:00", 274);
+		chart.setBarValue("05:30", 123);
+		chart.setBarValue("06:00", 500);
+
 		$(function(){
-			$(".chart").chartify(chart);
+			$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });
 			$(".canvasChart").chartify(chart, cf.ChartRenderingProviders.canvas);
 		});
 

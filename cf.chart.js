@@ -133,26 +133,79 @@
 	};
 
 	cf.ChartRenderingProviders = {
-		html: function(){
+		html: function(settings){
 				var self = this;
+				self.settings = settings;
 				self.chartContainer = null;
+				self.activeBars = 0;
+				self.removedBars = 0;
 
 				self.setup = function(){
 					self.chartContainer = $("<div/>");
 				};
 
 				self.addBar = function(value){
-					self.chartContainer.append("<div class='bar'><div class='barColour' style='height:" + value.yAxisValueAsPercent + "%'><span>" + value.xAxisValue + " | </span></div></div>");
+					if (self.settings.hideZeroValueBars && value.yAxisValueAsPercent <= 0)
+                    {
+                    	return;
+                    }
+					var bar = $("<div/>", { class: 'bar' });
+					bar.data('value', value.yAxisValue);
+					var barColour = $("<div/>", { class: 'barColour', css: { height: value.yAxisValueAsPercent.toString() + "%" }});
+					var barValue = $("<span/>", { text: value.xAxisValue	});					
+					self.chartContainer.append(bar.append(barColour.append(barValue)));
+					self.activeBars += 1;
 				};
 
 				self.getChart = function(){
+					function testBarForRemove(isSeenValue, bar)
+					{
+						// If we're yet to see a populated bar and the current bar's value is null
+						// remove the bar. Otherwise we've seen a populated bar and we return true.
+						(!isSeenValue && bar.data("value") === null) 
+							? function(){ bar.remove(); self.removedBars += 1 }() 
+							: isSeenValue = true;	
+						return isSeenValue;
+					}
+
+					function resizeBarsAsPercentage(percentage)
+					{
+						$(".bar", self.chartContainer).css('width', percentage.toString() + "%");
+					}
+						
+					if(self.settings.hideZeroValueBars)
+					{
+						resizeBarsAsPercentage(100 / activeBars);
+					}
+
+					if(self.settings.trimBars)
+					{
+						var seenValueLeft, seenValueRight;
+						var bars = $(".bar", self.chartContainer);
+						var barLast = bars.length -1;
+						
+						while(!seenValueLeft || !seenValueRight)
+						{
+							var first = $(".bar:first", self.chartContainer);
+							var last = $(".bar:last", self.chartContainer);
+							// remove first and last bars is appropriate (if their value is 0)
+							seenValueLeft = testBarForRemove(seenValueLeft, first);
+							seenValueRight = testBarForRemove(seenValueRight, last);
+						}
+
+						// Resize bars
+						resizeBarsAsPercentage(100 / (bars.length - self.removedBars));
+					}
+
 					return self.chartContainer;
 				};
 
 				return self;
 		},
-		canvas: function() {
+		canvas: function(settings) {
 			var self = this;
+
+			self.settings = settings;
 
 			self.chartContainer = null;
 
@@ -164,11 +217,11 @@
 				barWidth: 0
 			};
 
-			self.setup = function(){
+			self.setup = function(ctx){
 				chartContainer = $("<canvas/>");
 				self.settings.canvCtx = chartContainer[0].getContext("2d");
-				self.settings.canvCtx.canvas.height = '300';
-				self.settings.canvCtx.canvas.width = '1830';
+				self.settings.canvCtx.canvas.height = ctx.height();
+				self.settings.canvCtx.canvas.width = ctx.width();
 				self.settings.barWidth = self.settings.canvCtx.canvas.width / 48;
 				self.settings.canvCtx.fillStyle = "rgb(200, 0, 0)"; // general bar style.
 			};
@@ -193,14 +246,30 @@
 
 })(jQuery, ko, window.__cf);
 
-$.fn.chartify = function(chart, renderingProvider){
+$.fn.chartify = function(chart, renderingProvider, settings){
 	
 	var self = this;
+	self.empty();
 	self.addClass("chartified");
+
+	var defaultSettings = {
+		hideZeroValueBars: false,
+		trimBars: false
+	};
+
+	var mergedSettings = defaultSettings;
+
+	for(var prop in settings)
+	{
+		mergedSettings[prop] = settings[prop];
+	}
+
+	console.log(mergedSettings);
+
 	// if no provider specified, assume HTML.
-	renderingProvider = (renderingProvider === undefined) ? cf.ChartRenderingProviders.html : renderingProvider;
-	var provider = renderingProvider();
-	provider.setup();
+	renderingProvider = renderingProvider || cf.ChartRenderingProviders.html;
+	var provider = renderingProvider(mergedSettings);
+	provider.setup(self);
 
 	$.each(chart.getBars(), function(index, value){
 		provider.addBar(value);
