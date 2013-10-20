@@ -9,7 +9,7 @@
 
     	if(chartAxisProvider === undefined)
     	{
-    		alert("You must specify a chart axist provider like: new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider)");
+    		alert("You must specify a chart axis provider like: new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider). A chart axis provider is essentially a function that returns an array of x axis values");
     	}
 
     	var self = this;
@@ -20,7 +20,7 @@
     	self.metadata = {
     		maxValue: ko.observable(),
     		minValue: null,
-    		activeBars: 0
+    		activeBars: ko.observable()
     	};
 
     	function initialise()
@@ -29,6 +29,7 @@
 
     		// create the x horizontal axis values
 	    	self.xAxisValues = chartAxisProvider();
+	    	self.metadata.activeBars(self.xAxisValues.length);
 
 	    	self.metadata.maxValue.subscribe(function(value){
 	    		// recalculate all of the bars yAxisValueAsPercentage
@@ -43,7 +44,10 @@
 	    			xAxisValue: value,
 	    			yAxisValue: ko.observable(null),
 	    			yAxisValueAsPercent: ko.observable(null),
-	    			isActive: ko.observable(true)
+	    			isActive: ko.observable(true),
+	    			xAxisValueAsPercent: ko.computed(function(){
+	    				return 90 / self.metadata.activeBars();
+	    			})
 	    		};
 
 	    		bar.yAxisValue.subscribe(function(value){
@@ -66,14 +70,19 @@
     	// Hide zero values bars to the left and right of the first/last non zero bar.
     	self.trimBars = function()
     	{
-    		console.log("trimming bars");
     		function testBarForRemove(isSeenValue, bar)
 					{
 						// If we're yet to see a populated bar and the current bar's value is null
 						// remove the bar. Otherwise we've seen a populated bar and we return true.
 						(!isSeenValue && bar.yAxisValue() === null) 
-							? function(){ bar.isActive(false);  self.removedBars += 1 }() 
+							? function(){ bar.isActive(false);  self.removedBars += 1; self.metadata.activeBars(self.metadata.activeBars()-1); }() 
 							: isSeenValue = true;
+
+							if(isSeenValue)
+							{
+								console.log(bar);
+							}
+
 						return isSeenValue;
 					}
 
@@ -81,12 +90,9 @@
 			var bars = self.bars;
 			var barLast = bars.length -1;
 
-			var x = 0;
-
 			var currentBar = 0;
-			while((!seenValueLeft || !seenValueRight) && x < 20) 
+			while((!seenValueLeft || !seenValueRight)) 
 			{
-				x +=1;
 				// remove first and last bars is appropriate (if their value is 0)
 				seenValueLeft = !seenValueLeft 
 										? testBarForRemove(seenValueLeft, bars[currentBar]) 
@@ -100,7 +106,8 @@
 			}
 
 			// Resize bars
-			self.resizeBarsAsPercentage(100 / (bars.length - self.removedBars));
+			var bars = self.getBars();
+			$.each(bars, function(index, value){ value.xAxisValueAsPercent(); });
 			return self.getBars();
     	}
 
@@ -150,7 +157,7 @@
     			// If the bar we're adding is about to become active for the first time, incriment the activeBars count.
     			if(!matchingBars[0].isActive())
     			{
-    				self.metadata.activeBars += 1;
+    				self.metadata.activeBars(self.metadata.activeBars() + 1);
     			}
 
     			matchingBars[0].yAxisValue(newYAxisValue);
@@ -187,14 +194,12 @@
     			{
     				if(!bars[i].isActive())
     				{
-    					self.metadata.activeBars += 1;
+    					self.metadata.activeBars(self.metadata.activeBars() + 1);
 	    			}
 
     				bars[i].isActive(true);
     				bars[i].yAxisValue(bars[i].yAxisValue());
     			}
-
-    			console.log(self.metadata.activeBars);
     		}
     	};
 

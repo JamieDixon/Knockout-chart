@@ -6,6 +6,7 @@
 	<style>
 		.chartified, .chartified > div{
 			height:300px;
+			position:relative;
 		}
 		.chart{
 			border: 1px solid #999;
@@ -16,7 +17,7 @@
 			display: none;
 			height: 100%;
 			position:relative;
-			width: 30px;
+			/*width: 30px;*/
 			margin: 0;
 			padding: 0;
 		}
@@ -68,8 +69,8 @@
 		// Adding value by key directly.
 		chart.setBarValue("05:00", 20);
 		chart.setBarValue("05:30", 40);
-		chart.setBarValue("13:00", 300);
-		chart.setBarValue("07:30", 100);
+		
+/*		chart.setBarValue("07:30", 100);
 		chart.setBarValue("18:30", 90);
 		chart.setBarValue("10:25", 50);
 		chart.setBarValue("01:00", 523);
@@ -80,10 +81,10 @@
 
 		chart.setBarValue("04:00", 274);
 		chart.setBarValue("05:30", 123);
-		chart.setBarValue("06:00", 500);
+		chart.setBarValue("06:00", 500);*/
 
 		$(function(){
-			$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });
+			/*$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });*/
 			$(".canvasChart").chartify(chart, cf.ChartRenderingProviders.canvas);
 
 		var viewModel = { b: chart.trimBars(), max: chart.metadata.maxValue, c: chart }
@@ -94,7 +95,7 @@
 			var randValue =  Math.floor(Math.random()*(1000-0+1)+0);
 			var key = chart.xAxisValues[randItem];
 			viewModel.c.setBarValue(key, randValue);
-		}, 1000);
+		}, 200);
 		});
 
 	</script>
@@ -105,7 +106,7 @@
 		<div class="canvasChart"></div>
 
 		<div class="chartified" data-bind="foreach: b">
-			<div class="bar activeBar" data-bind="attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
+			<div data-bind="style: { width : xAxisValueAsPercent() + '%' }, attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
 				<div class="barColour niceColour" data-bind="style: { height: yAxisValueAsPercent().toString() + '%' }">
 					<span data-bind="text: xAxisValue"></span>
 				</div>
