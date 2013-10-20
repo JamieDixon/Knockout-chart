@@ -13,10 +13,12 @@
 			padding: 5px;
 		}
 		.chartified .bar{
-			display: inline-block;
+			display: none;
 			height: 100%;
 			position:relative;
 			width: 30px;
+			margin: 0;
+			padding: 0;
 		}
 		.chartified .barColour{
 			position: absolute;
@@ -39,7 +41,16 @@
 			margin-top: 20px;
 			padding-top: 5px;
 		}
-		.barColour{width: 100%;}
+		.barColour{width: 100%; transition: height 2s; }
+		.niceColour{
+			background: linear-gradient(to right, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
+		}
+
+		.chartified .bar.activeBar
+		{
+			display:inline-block;
+		}
+
 	</style>
 	<script>
 		window.__cf = __cf = window.__cf || {};
@@ -74,6 +85,16 @@
 		$(function(){
 			$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });
 			$(".canvasChart").chartify(chart, cf.ChartRenderingProviders.canvas);
+
+		var viewModel = { b: chart.trimBars(), max: chart.metadata.maxValue, c: chart }
+		ko.applyBindings(viewModel);
+		
+		setInterval(function(){
+			var randItem =  Math.floor(Math.random()*(47-1+1)+1);
+			var randValue =  Math.floor(Math.random()*(1000-0+1)+0);
+			var key = chart.xAxisValues[randItem];
+			viewModel.c.setBarValue(key, randValue);
+		}, 1000);
 		});
 
 	</script>
@@ -82,6 +103,22 @@
 	<div id="container">
 		<div class="chart"></div>
 		<div class="canvasChart"></div>
+
+		<div class="chartified" data-bind="foreach: b">
+			<div class="bar activeBar" data-bind="attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
+				<div class="barColour niceColour" data-bind="style: { height: yAxisValueAsPercent().toString() + '%' }">
+					<span data-bind="text: xAxisValue"></span>
+				</div>
+			</div>
+		</div>
+	</div>
+<br />
+<br />
+<br />
+<br />
+<br />
+		<div>
+		<input data-bind="value: max" />
 	</div>
 </body>
 </html>

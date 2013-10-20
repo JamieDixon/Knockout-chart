@@ -18,8 +18,9 @@
     	self.bars = [];
 
     	self.metadata = {
-    		maxValue: null,
-    		minValue: null
+    		maxValue: ko.observable(),
+    		minValue: null,
+    		activeBars: 0
     	};
 
     	function initialise()
@@ -29,21 +30,85 @@
     		// create the x horizontal axis values
 	    	self.xAxisValues = chartAxisProvider();
 
+	    	self.metadata.maxValue.subscribe(function(value){
+	    		// recalculate all of the bars yAxisValueAsPercentage
+	    			$.each(self.bars, function(index, value){
+						value.yAxisValueAsPercent((value.yAxisValue() / self.metadata.maxValue()) * 100);
+					});
+	    	});
+
 	    	// create a bar for each x horizontal axis value
 			$.each(self.xAxisValues, function(index, value){
-				self.bars.push({
+				var bar = {
 	    			xAxisValue: value,
-	    			yAxisValue: null,
-	    			yAxisValueAsPercent: null
+	    			yAxisValue: ko.observable(null),
+	    			yAxisValueAsPercent: ko.observable(null),
+	    			isActive: ko.observable(true)
+	    		};
+
+	    		bar.yAxisValue.subscribe(function(value){
+	    			if(value > self.metadata.maxValue())
+	    			{
+	    				self.metadata.maxValue(value);
+	    			}
+	    			/*self.metadata.maxValue(value > self.metadata.maxValue() ? value : self.metadata.maxValue());*/
+	    			bar.yAxisValueAsPercent((value / self.metadata.maxValue()) * 100);
 	    		});
+
+				self.bars.push(bar);
 			});
     	};
+
+    	self.resizeBarsAsPercentage = function(percentage)
+					{
+						$(".bar", self.chartContainer).css('width', percentage.toString() + "%");
+					}
+    	// Hide zero values bars to the left and right of the first/last non zero bar.
+    	self.trimBars = function()
+    	{
+    		console.log("trimming bars");
+    		function testBarForRemove(isSeenValue, bar)
+					{
+						// If we're yet to see a populated bar and the current bar's value is null
+						// remove the bar. Otherwise we've seen a populated bar and we return true.
+						(!isSeenValue && bar.yAxisValue() === null) 
+							? function(){ bar.isActive(false);  self.removedBars += 1 }() 
+							: isSeenValue = true;
+						return isSeenValue;
+					}
+
+			var seenValueLeft, seenValueRight;
+			var bars = self.bars;
+			var barLast = bars.length -1;
+
+			var x = 0;
+
+			var currentBar = 0;
+			while((!seenValueLeft || !seenValueRight) && x < 20) 
+			{
+				x +=1;
+				// remove first and last bars is appropriate (if their value is 0)
+				seenValueLeft = !seenValueLeft 
+										? testBarForRemove(seenValueLeft, bars[currentBar]) 
+										: seenValueLeft;
+				seenValueRight = !seenValueRight 
+										? testBarForRemove(seenValueRight, bars[barLast]) 
+										: seenValueRight;
+				
+				currentBar += 1;
+				barLast -= 1;
+			}
+
+			// Resize bars
+			self.resizeBarsAsPercentage(100 / (bars.length - self.removedBars));
+			return self.getBars();
+    	}
 
     	    	// Set bar values based on a collection of bar objects.
     	self.setBarValues = function(barCollection)
     	{
     		$.each(barCollection, function(index, value){
-    			self.setBarValue(value.xAxisValue, value.yAxisValue);
+    			self.setBarValue(value.xAxisValue, value.yAxisValue());
     		});
     	}
 
@@ -53,7 +118,7 @@
     		// If only one argument passed, assume it's a bar object.
     		if(arguments.length == 1)
     		{
-    			return self.setBarValue(xAxisReference.xAxisValue, xAxisReference.yAxisValue);
+    			return self.setBarValue(xAxisReference.xAxisValue, xAxisReference.yAxisValue());
     		}
 
     		// Figure out where this bar fits in relation to our bars collection.
@@ -82,17 +147,64 @@
     		// Set the new value for this bar. Since everything is byRef in JS this will ammend the self.bars collection.
     		if(matchingBars.length > 0)
     		{
-    			matchingBars[0].yAxisValue = newYAxisValue;
+    			// If the bar we're adding is about to become active for the first time, incriment the activeBars count.
+    			if(!matchingBars[0].isActive())
+    			{
+    				self.metadata.activeBars += 1;
+    			}
+
+    			matchingBars[0].yAxisValue(newYAxisValue);
+    			matchingBars[0].isActive(true);
+    			
+    			var x = 0;
+    			var y = bars.length -1;
+    			var firstActiveIndex = null;
+    			var lastActiveIndex = null;
+
+    			var firstActiveFound = false;
+    			var lastActiveFound = false;
+
+    			while(!firstActiveFound || !lastActiveFound)
+    			{
+    				if(!firstActiveFound && bars[x].isActive())
+    				{
+    					firstActiveIndex = x;
+    					firstActiveFound = true;
+    				}
+
+    				if(!lastActiveFound && bars[y].isActive())
+    				{
+    					lastActiveIndex = y;
+    					lastActiveFound = true;
+    				}
+
+    				x+=1;
+    				y-=1;
+    			}
+
+    			// Set all applicable bars to active.
+    			for(var i = firstActiveIndex; i < lastActiveIndex; i++)
+    			{
+    				if(!bars[i].isActive())
+    				{
+    					self.metadata.activeBars += 1;
+	    			}
+
+    				bars[i].isActive(true);
+    				bars[i].yAxisValue(bars[i].yAxisValue());
+    			}
+
+    			console.log(self.metadata.activeBars);
     		}
     	};
 
     	self.getBars = function(){
-    		var valuesArray = $.map(self.bars, function(item){ return item.yAxisValue; });
-			self.metadata.maxValue = Math.max.apply(Math, valuesArray);
+    		var valuesArray = $.map(self.bars, function(item){ return item.yAxisValue(); });
+			self.metadata.maxValue(Math.max.apply(Math, valuesArray));
 			self.metadata.minValue = Math.min.apply(Math, valuesArray);
 
 			$.each(self.bars, function(index, value){
-				value.yAxisValueAsPercent = (value.yAxisValue / self.metadata.maxValue) * 100;
+				value.yAxisValueAsPercent((value.yAxisValue() / self.metadata.maxValue()) * 100);
 			});
 
     		return self.bars;
@@ -106,7 +218,7 @@
 
 	cf.ChartAxisProviders = {
 		dayChartAxisProvider: function(){
-    		var result = [];
+    		var result = ko.observableArray();
 
     		for(var t = 0; t < 24; t++)
 	    	{
@@ -116,7 +228,7 @@
 	    		result.push(cf.ChartAxisProviders.helpers.formatString(hourFormat, t));
 	    		result.push(cf.ChartAxisProviders.helpers.formatString(halfHourFormat, t));
 	    	}
-	    	return result;
+	    	return result();
     	},
 
     	helpers: {
@@ -144,14 +256,19 @@
 					self.chartContainer = $("<div/>");
 				};
 
+				self.addBars = function(bars){
+					
+				};
+
 				self.addBar = function(value){
-					if (self.settings.hideZeroValueBars && value.yAxisValueAsPercent <= 0)
+					
+					if (self.settings.hideZeroValueBars && value.yAxisValueAsPercent() <= 0)
                     {
                     	return;
                     }
-					var bar = $("<div/>", { class: 'bar' });
-					bar.data('value', value.yAxisValue);
-					var barColour = $("<div/>", { class: 'barColour', css: { height: value.yAxisValueAsPercent.toString() + "%" }});
+					var bar = $("<div/>", { class: 'bar'});
+					bar.data('value', value.yAxisValue());
+					var barColour = $("<div/>", { class: 'barColour', css: { height: value.yAxisValueAsPercent().toString() + "%" }});
 					var barValue = $("<span/>", { text: value.xAxisValue	});					
 					self.chartContainer.append(bar.append(barColour.append(barValue)));
 					self.activeBars += 1;
@@ -162,8 +279,8 @@
 					{
 						// If we're yet to see a populated bar and the current bar's value is null
 						// remove the bar. Otherwise we've seen a populated bar and we return true.
-						(!isSeenValue && bar.data("value") === null) 
-							? function(){ bar.remove(); self.removedBars += 1 }() 
+						(!isSeenValue && bar.data("value") === undefined) 
+							? function(){ bar.removeClass('activeBar'); self.removedBars += 1 }() 
 							: isSeenValue = true;	
 						return isSeenValue;
 					}
@@ -183,14 +300,22 @@
 						var seenValueLeft, seenValueRight;
 						var bars = $(".bar", self.chartContainer);
 						var barLast = bars.length -1;
-						
-						while(!seenValueLeft || !seenValueRight)
+						$(".bar", self.chartContainer).addClass("activeBar");
+
+						var x = 0;
+						while((!seenValueLeft || !seenValueRight) && x < 20) 
 						{
-							var first = $(".bar:first", self.chartContainer);
-							var last = $(".bar:last", self.chartContainer);
+							console.log($(".bar.activeBar:first", self.chartContainer));
+
 							// remove first and last bars is appropriate (if their value is 0)
-							seenValueLeft = testBarForRemove(seenValueLeft, first);
-							seenValueRight = testBarForRemove(seenValueRight, last);
+							seenValueLeft = !seenValueLeft 
+													? testBarForRemove(seenValueLeft, $(".bar.activeBar:first", self.chartContainer)) 
+													: seenValueLeft;
+							seenValueRight = !seenValueRight
+													? testBarForRemove(seenValueRight, $(".bar.activeBar:last", self.chartContainer)) 
+													: seenValueRight;
+
+													x +=1;
 						}
 
 						// Resize bars
@@ -218,6 +343,7 @@
 			};
 
 			self.setup = function(ctx){
+				console.log("setting up the canvas chart");
 				chartContainer = $("<canvas/>");
 				self.settings.canvCtx = chartContainer[0].getContext("2d");
 				self.settings.canvCtx.canvas.height = ctx.height();
@@ -227,8 +353,9 @@
 			};
 
 			self.addBar = function(value){
-				var barValue = value.yAxisValue;
-				var barHeightAsPercent = (self.settings.canvCtx.canvas.height / 100) * value.yAxisValueAsPercent;
+				console.log("adding a bar to the canvas");
+				var barValue = value.yAxisValue();
+				var barHeightAsPercent = (self.settings.canvCtx.canvas.height / 100) * value.yAxisValueAsPercent();
 				var rectTop = self.settings.canvCtx.canvas.height - barHeightAsPercent;
 
 				self.settings.canvCtx.fillRect(settings.leftPos, rectTop, settings.barWidth, barHeightAsPercent);
@@ -263,8 +390,6 @@ $.fn.chartify = function(chart, renderingProvider, settings){
 	{
 		mergedSettings[prop] = settings[prop];
 	}
-
-	console.log(mergedSettings);
 
 	// if no provider specified, assume HTML.
 	renderingProvider = renderingProvider || cf.ChartRenderingProviders.html;
