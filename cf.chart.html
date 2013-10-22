@@ -4,54 +4,108 @@
 	<meta charset="UTF-8">
 	<title>CF Chart</title>
 	<style>
-		.chartified, .chartified > div{
-			height:300px;
-			position:relative;
-		}
-		.chart{
-			border: 1px solid #999;
-			
-			padding: 5px;
-		}
-		.chartified .bar{
-			display: none;
-			height: 100%;
-			position:relative;
-			/*width: 30px;*/
-			margin: 0;
-			padding: 0;
-		}
-		.chartified .barColour{
-			position: absolute;
-			bottom: 0;
-			font-size: 0.9em;
-			background-color: #00FF00;
-		}
+	h2{
+		margin-top: 1000px;
+	}
 
-		.chartified .bar:hover .barColour{
-			background-color: #0000FF;
-		}
+	.horizontalChart{
+		width: 200px;
+		height: 100px;
+		position: relative;
+	}
 
-		.chartified span{
-			position: absolute;
-			bottom: -25px;
-		}
+	.horizontalChart .chartVert
+	{
+		height: 90%;
+	}
 
-		.canvasChart{
-			border: 1px solid #000;
-			margin-top: 20px;
-			padding-top: 5px;
-		}
-		.barColour{width: 100%; transition: height 2s; }
-		.niceColour{
-			background: linear-gradient(to right, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
-		}
+	.horizontalChart .xAxisView{
+		height: 10%;
+		margin-left: 17%;
+		vertical-align: bottom;
+		clear:left;
+	}
 
-		.chartified .bar.activeBar
-		{
-			display:inline-block;
-		}
+	.horizontalChart .chartVert, .horizontalChart .yAxisView{
+		float:left;
+	}
 
+	.horizontalChart .xAxisView, .horizontalChart .chartVert{
+		width: 82%;
+	}
+
+	.horizontalChart .yAxisView{
+		height:100%;
+		width: 17%;
+	}
+
+	.horizontalChart .yAxisView span
+	{
+		height: 25%;
+		font-size: 0.8em;
+		clear:left;
+	}
+
+	.horizontalChart .xAxisView span{
+		display:block;
+		font-size: 0.8em;
+		float:left;
+		width: 24.9%;
+		margin:0;
+		padding:0;
+		text-align: center;
+	}
+
+	/* First item in the x axis */
+	.horizontalChart .xAxisView span.xAxisFirst{
+		text-align: left;
+	}
+
+	/* Last item in the x axis */
+	.horizontalChart .xAxisView span.xAxisLast
+	{
+		text-align: right;
+	}
+
+	.chartified .bar{
+		display: none;
+		height: 100%;
+		position:relative;
+	}
+	.chartified .barColour{
+		position: absolute;
+		bottom: 0;
+		font-size: 0.9em;
+		background-color: #00FF00;
+	}
+
+	.chartified .bar:hover .barColour{
+		background-color: #0000FF;
+	}
+
+	/* The xAxis values associted with each bar. Not to be confused with the xAxis widget */
+	.chartified span{
+		position: absolute;
+		bottom: -25px;
+	}
+
+	.canvasChart{
+		border: 1px solid #000;
+		margin-top: 20px;
+		padding-top: 5px;
+	}
+
+	.barColour{ width: 100%; } 
+
+	.chartified .bar.activeBar
+	{
+		display: block;
+		float:left;
+	}
+
+	.chartified.chartHoriz .bar.activeBar{
+		float: none;
+	}
 	</style>
 	<script>
 		window.__cf = __cf = window.__cf || {};
@@ -67,59 +121,101 @@
 		var chart = new cf.Chart(chartAxisProvider);
 
 		// Adding value by key directly.
-		chart.setBarValue("05:00", 20);
-		chart.setBarValue("05:30", 40);
+		chart.setBarValue("06:00", 20);
+		chart.setBarValue("07:30", 40);
+		chart.setBarValue("17:30", 40);
 		
-/*		chart.setBarValue("07:30", 100);
-		chart.setBarValue("18:30", 90);
-		chart.setBarValue("10:25", 50);
-		chart.setBarValue("01:00", 523);
-
-		chart.setBarValue("02:00", 300);
-		chart.setBarValue("02:30", 175);
-		chart.setBarValue("03:00", 145);
-
-		chart.setBarValue("04:00", 274);
-		chart.setBarValue("05:30", 123);
-		chart.setBarValue("06:00", 500);*/
+		var chartVert = new cf.Chart(function(){ return ["abc", "def", "ghi", "jkl", "mno" ]; });
+		chartVert.setBarValue("abc", 500);
+		chartVert.setBarValue("def", 300);
+		chartVert.setBarValue("ghi", 300);
+		chartVert.setBarValue("jkl", 200);
+		chartVert.setBarValue("mno", 300);
 
 		$(function(){
-			/*$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });*/
-			$(".canvasChart").chartify(chart, cf.ChartRenderingProviders.canvas);
+			$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: false });
+			$(".chartTrimmed").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });
 
-		var viewModel = { b: chart.trimBars(), max: chart.metadata.maxValue, c: chart }
+		var viewModel = { 
+			horizontal: { b: chart.trimBars(), max: chart.metadata.maxValue, c: chart },
+			vertical: { b: chartVert.trimBars(), max: chartVert.metadata.maxValue, c: chartVert }
+		}
 		ko.applyBindings(viewModel);
 		
 		setInterval(function(){
-			var randItem =  Math.floor(Math.random()*(47-1+1)+1);
+			var randItem =  Math.floor(Math.random()*(47-0+1)+0);
 			var randValue =  Math.floor(Math.random()*(1000-0+1)+0);
 			var key = chart.xAxisValues[randItem];
-			viewModel.c.setBarValue(key, randValue);
-		}, 200);
+			viewModel.horizontal.c.setBarValue(key, randValue);
+		}, 1000);
+
+		setInterval(function(){
+			var randItem =  Math.floor(Math.random()*(4-1+1)+1);
+			var randValue =  Math.floor(Math.random()*(1000-0+1)+0);
+			var key = chartVert.xAxisValues[randItem];
+			viewModel.vertical.c.setBarValue(key, randValue);
+		}, 60000);
 		});
 
 	</script>
 </head>
 <body>
 	<div id="container">
-		<div class="chart"></div>
-		<div class="canvasChart"></div>
+<!-- 		<ul>
+	<li><a href="#standard">Standard chart</a></li>
+	<li><a href="#standardTrimmed">Standard chart trimmed</a></li>
+	<li><a href="#knockoutChart">Knockout chart</a></li>
+	<li><a href="#knockoutChartRotated">Knockout chart rotated</a></li>
+</ul>
 
-		<div class="chartified" data-bind="foreach: b">
-			<div data-bind="style: { width : xAxisValueAsPercent() + '%' }, attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
-				<div class="barColour niceColour" data-bind="style: { height: yAxisValueAsPercent().toString() + '%' }">
+<h2 id="standard">Standard chart</h2>
+<div class="chart"></div>
+
+<h2 id="standardTrimmed">Standard chart with trimming</h2>
+<div class="chartTrimmed"></div>
+<div class="canvasChart"></div> -->
+		
+		<!-- Horizontal Chart -->
+		<h2 id="knockoutChart">Knockout chart</h2>
+
+		<div class="horizontalChart">
+			<div class="yAxisView" data-bind="foreach: horizontal.c.visibleYAxisValues()">
+				<span data-bind="text: 'R ' + value"></span>
+			</div>
+
+			<div class="chartified chartVert" data-bind="foreach: horizontal.b">
+				<div data-bind="style: { width : xAxisValueAsPercent() + '%' }, attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
+					<div class="barColour niceColour" data-bind="style: { height: yAxisValueAsPercent().toString() + '%' }">
+						<!-- <span data-bind="text: xAxisValue"></span>  -->
+					</div>
+				</div>
+			</div>
+
+			<div class="xAxisView" data-bind="foreach: horizontal.c.visibleXAxisValues()">
+				<span data-bind="text: bar.xAxisValue, css: cssClass"></span>
+			</div>
+		</div>
+
+		<!-- <div>
+			<label>Horizontal chart max</label>	
+			<input data-bind="value: horizontal.max" />
+		</div>
+		
+		Vertical Chart
+		<h2 id="knockoutChartRotated">Knockout chart horizontal expansion</h2>
+		<div class="chartified chartHoriz" data-bind="foreach: vertical.b">
+			<div data-bind="style: { height : xAxisValueAsPercent() + '%' }, attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
+				<div class="barColour niceColour" data-bind="style: { width: yAxisValueAsPercent().toString() + '%' }">
 					<span data-bind="text: xAxisValue"></span>
 				</div>
 			</div>
 		</div>
-	</div>
-<br />
-<br />
-<br />
-<br />
-<br />
-		<div>
-		<input data-bind="value: max" />
-	</div>
+			</div>
+		
+			<div>
+		<label>Horizontal chart max</label>	
+		<input data-bind="value: vertical.max" /></div>
+			</div> -->
+
 </body>
 </html>
