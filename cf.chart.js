@@ -22,7 +22,7 @@
 
     	self.metadata = {
     		maxValue: ko.observable(),
-    		minValue: null,
+    		minValue: ko.observable(),
     		activeBars: ko.observable(),
     		xAxisValuesDisplayNumber: 4,
     		yAxisValuesDisplayNumber: 4
@@ -63,7 +63,7 @@
 	   			/// Add the min value
 	    		self.visibleYAxisValues.push(
 	    		{
-	    			value: 0
+	    			value: self.metadata.minValue()
 	    		});
 
 	    		var ref = allActive.length / self.metadata.xAxisValuesDisplayNumber;
@@ -79,8 +79,14 @@
 
 	    		for(var i = 1; i < self.metadata.xAxisValuesDisplayNumber -1; i++)
 	    		{
-	    			var pos = Math.ceil(ref * i);
-	    			var item = allActive[pos];
+	    			// get the start position of the segment containing our display value
+                    var pos = Math.floor(ref * i);
+                    
+                    // get the mid point of the segment.
+                    var midPoint = Math.round(pos + (ref / 2));
+                    
+                    var item = allActive[midPoint];
+
 	    			if(item !== undefined)
 	    			{
 		    			item.displayXAxisValue(true);
@@ -136,6 +142,10 @@
 	    		};
 
 	    		bar.yAxisValue.subscribe(function(value){
+	    			if(value < self.metadata.minValue())
+	    			{
+	    				self.metadata.minValue(value);
+	    			}
 
 	    			if(value > self.metadata.maxValue())
 	    			{
@@ -324,7 +334,7 @@
     		// Set the min and max values in the chart.
     		var valuesArray = $.map(self.bars, function(item){ return item.yAxisValue(); });
 			self.metadata.maxValue(Math.max.apply(Math, valuesArray));
-			self.metadata.minValue = Math.min.apply(Math, valuesArray);
+			self.metadata.minValue(Math.min.apply(Math, valuesArray));
 
 			// TODO: This could be a calculated observable?
 			$.each(self.bars, function(index, value){
