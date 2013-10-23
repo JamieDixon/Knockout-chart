@@ -1,4 +1,4 @@
-barChart
+Knockout Bar Chart
 ========
 
-Simple Javascript bar chart engine.
+A simple bar chart engine for knockout.js
