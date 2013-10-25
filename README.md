@@ -6,15 +6,18 @@ A simple bar chart engine for knockout.js
 Usage
 =======
 
-Add a Y axis:
-======
+### Add a Y axis:
+
+``` html
 <div class="yAxisView" data-bind="foreach: c().visibleYAxisValues()">
     <span data-bind="text: Math.round(value)" class="yAxisDotter">
     </span>
 </div>
+```
 
-Add the bar chart:
-======
+### Add the bar chart:
+
+``` html
 <div class="graph">
 
     <div class="chartified chartVert" data-bind="foreach: b()">
@@ -23,9 +26,30 @@ Add the bar chart:
         </div>
     </div>
 </div>
+```
 
-Add an X axis:
-======
+### Add an X axis:
+
+``` html
 <div class="xAxisView" data-bind="foreach:c().visibleXAxisValues()">
     <span data-bind="text: bar.xAxisValue.split(':')[0], css: cssClass"></span>
 </div>
+```
+
+### Wire it up
+
+``` javascript
+// This example uses a dayChartAxisProvider which is a function returning an array of hours 
+// ["00:00", "00:30", 01:00",...]
+
+var chart = new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider);
+
+var viewModel = {
+  c: ko.observable(chart),
+  b: ko.observableArray(chart.trimBars()),
+  max: chart.metadata.maxValue()
+};
+
+ko.applyBindings(viewModel);
+
+```

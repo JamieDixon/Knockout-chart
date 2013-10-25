@@ -9,8 +9,8 @@
 	}
 
 	.horizontalChart{
-		width: 200px;
-		height: 100px;
+		width: 900px;
+		height: 300px;
 		position: relative;
 	}
 
@@ -36,11 +36,12 @@
 
 	.horizontalChart .yAxisView{
 		height:100%;
-		width: 17%;
+		width: 5%;
 	}
 
 	.horizontalChart .yAxisView span
 	{
+		display: block;
 		height: 25%;
 		font-size: 0.8em;
 		clear:left;
@@ -76,7 +77,9 @@
 		position: absolute;
 		bottom: 0;
 		font-size: 0.9em;
-		background-color: #00FF00;
+		background: linear-gradient(to right, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
+		transition: height 2s;
+
 	}
 
 	.chartified .bar:hover .barColour{
@@ -133,9 +136,6 @@
 		chartVert.setBarValue("mno", 300);
 
 		$(function(){
-			$(".chart").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: false });
-			$(".chartTrimmed").chartify(chart, cf.ChartRenderingProviders.html, { trimBars: true });
-
 		var viewModel = { 
 			horizontal: { b: chart.trimBars(), max: chart.metadata.maxValue, c: chart },
 			vertical: { b: chartVert.trimBars(), max: chartVert.metadata.maxValue, c: chartVert }
@@ -178,12 +178,12 @@
 		<!-- Horizontal Chart -->
 		<h2 id="knockoutChart">Knockout chart</h2>
 
-		<div class="horizontalChart">
-			<div class="yAxisView" data-bind="foreach: horizontal.c.visibleYAxisValues()">
-				<span data-bind="text: 'R ' + value"></span>
+		<div class="horizontalChart" data-bind="with: horizontal">
+			<div class="yAxisView" data-bind="foreach: c.visibleYAxisValues()">
+				<span data-bind="text: value"></span>
 			</div>
 
-			<div class="chartified chartVert" data-bind="foreach: horizontal.b">
+			<div class="chartified chartVert" data-bind="foreach: b">
 				<div data-bind="style: { width : xAxisValueAsPercent() + '%' }, attr: { 'data-value' : yAxisValue, class: isActive() ? 'bar activeBar' : 'bar' }">
 					<div class="barColour niceColour" data-bind="style: { height: yAxisValueAsPercent().toString() + '%' }">
 						<!-- <span data-bind="text: xAxisValue"></span>  -->
@@ -191,7 +191,7 @@
 				</div>
 			</div>
 
-			<div class="xAxisView" data-bind="foreach: horizontal.c.visibleXAxisValues()">
+			<div class="xAxisView" data-bind="foreach: c.visibleXAxisValues()">
 				<span data-bind="text: bar.xAxisValue, css: cssClass"></span>
 			</div>
 		</div>
