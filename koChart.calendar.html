@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Calendar Chart</title>
+	
+	<style>
+	.calendarBarChart{
+		width: 960px;
+		height: 300px;
+		margin: 100px;
+		position: relative;
+	}
+
+	.calendarNav
+	{
+		width: 20%;
+		margin: 0 auto;
+	}
+	
+	ul.calXAxis{ 
+		clear: both;
+		float: right;
+		width: 90%;
+		padding: 0;
+		margin: 0;
+	}
+	.calXAxis li{
+		float:left;
+		list-style: none;
+		text-align:center;
+	}
+	.calXAxis li input{
+		display:block;
+		padding: 0;
+		margin: 0 auto;
+	}
+
+	.calYAxis
+	{
+		margin: 0;
+		padding: 0;
+		height: 85%;
+		list-style:none;
+		float:left;
+	}
+
+	.calYAxis li{
+		height: 23%;
+	}
+
+
+	.barSlider{
+		float:right;
+		width: 90%;
+		height: 85%;
+		padding: 0;
+		margin: 0;
+		margin-bottom: 1%;
+		border: 1px solid #ccc;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.calBars{
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 0;
+
+		position: absolute;
+	}
+	.calBars li{
+		float: left;
+		height: 100%;
+		list-style: none;
+		text-align: center;
+		position: relative;
+	}
+
+	.calBars li:hover > .barColour{
+		background-color: #ffcd00;
+	}
+
+	.calBars li:hover > .barColour .barValue{
+		visibility: visible;
+		opacity: 1;
+	}
+	.calBars li .barColour{
+		width: 90%;
+		display: block;
+		background: #4cc2ff;
+		position: absolute;
+		bottom:0;
+		transition: height 2s;
+	}
+
+	.barColour .barValue
+	{
+		display:block;
+		font-family: tahoma, Tahoma, Geneva, Verdana, sans-serif;
+		font-size: 0.9em;
+		visibility: hidden;
+ 		width: 100px;
+ 		position: absolute;
+ 		top: -76px;
+ 		left: -48px;
+		border-radius: 5px;
+		color: #fff;
+		background: #19335f;
+		padding: 10px;
+		opacity: 0;
+		z-index: 999;
+		transition: opacity 1s;
+	}
+
+	.barValue span{ display: block; }
+	.barValue .price{
+		display: block;
+		font-weight: bold;
+	}
+
+	.arrow-down {
+		width: 0; 
+		height: 0; 
+		border-left: 10px solid transparent;
+		border-right: 10px solid transparent;
+		border-top: 10px solid #19335f;
+		position: absolute;
+		bottom: -10px;
+		left: 40%;
+	}
+
+	.cheapest{
+		color: orange;
+	}
+
+
+	</style>
+
+	<script>
+		window.koChart = koChart = window.koChart || {};
+	</script>
+
+	<script src="http://codeorigin.jquery.com/jquery-2.0.3.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/1.7.2/moment.min.js"></script>
+	
+	<script src="koChart.providers.js"></script>
+	<script src="cf.chart.js"></script>
+	
+	<script>
+		$(function(){
+			var charts = {};
+			
+			var here = moment();
+			var chartAxisProvider = koChart.ChartAxisProviders.monthChartAxisProvider(here);
+			var chart = new koChart.Chart(chartAxisProvider);
+
+			chart.setBarValue(1, 600);
+			chart.setBarValue(15, 400);
+			chart.setBarValue(30, 500);
+			chart.setBarValue(23, 100);
+
+			charts[here.month()] = chart;
+
+			var viewModel = {
+				c: ko.observable(chart),
+				b: ko.observable(chart.getBars()),
+				mo:ko.observable(here)
+			};
+
+			ko.applyBindings(viewModel);
+
+			var isAnimating = false;
+
+			function changeMonth(incrementalValue, slideDirection)
+			{
+
+				var current = $('.calBars').first();
+				var clone = current.clone();
+
+				// Move the propper chart out of the way
+				current.css(slideDirection == 'left' ? { left: '960px'} : { left: '-960px' });
+
+				// stick a cloned fake in place of the propper chart.
+				slideDirection == 'left' 
+				? $('.barSlider').prepend(clone)
+				: $('.barSlider').append(clone);
+
+				var hideAnimation = slideDirection == 'left' ? { left: -1000 } : { left: 1000 };
+				var showAnimation = slideDirection == 'left' ? { left: 0 } : { left: 0 }
+
+				// Make the fake clone bugger off
+				clone.animate(hideAnimation, 1000, function(){ this.remove(); });
+
+				// Bring back the propper chart into view.
+				current.animate(showAnimation, 1000);
+
+				var newChart, newChartAxisProvider;
+				here.add('months', incrementalValue);
+
+				var cache = charts[here.month()];
+				if(cache !== undefined)
+				{
+					newChart = cache;
+				}
+				else
+				{
+					newChartAxisProvider = koChart.ChartAxisProviders.monthChartAxisProvider(here);
+					newChart = new koChart.Chart(newChartAxisProvider);
+					charts[here.month()] = newChart;
+				}
+
+				newChart.setBarValue(1, 600);
+				newChart.setBarValue(15, 400);
+				newChart.setBarValue(30, 500);
+				newChart.setBarValue(23, 100);
+
+				viewModel.c(newChart);
+				viewModel.b(newChart.getBars());
+				viewModel.mo(here);
+			}
+
+			$("#prevMonth").on("click", function(){
+				changeMonth(-1, 'right');
+			});
+
+			$("#nextMonth").on("click", function(){
+				changeMonth(1, 'left');
+			});
+
+			setInterval(function(){
+				var randItem =  Math.floor(Math.random()*(31-1+1)+1);
+				var randValue =  Math.floor(Math.random()*(1000-0+1)+0);
+				var key = chart.xAxisValues[randItem];
+				viewModel.c().setBarValue(key, randValue);
+			}, 1000);
+		});
+	</script>
+</head>
+<body>
+	<div class="calendarBarChart">
+		<div class="calendarNav">
+			<button id="prevMonth">&lt;</button>
+			<span data-bind="text: mo().format('MMMM YYYY')"></span>
+			<button id="nextMonth">&gt;</button>
+		</div>
+
+			<ul class="calYAxis" data-bind="foreach: c().visibleYAxisValues()">
+				<li data-bind="text: 'R' + Math.round(value) + 'pp'"></li>
+			</ul>
+
+		<div class="barSlider">
+			<ul class="calBars" data-bind="foreach: b()">
+				<li data-bind="style: {width: xAxisValueAsPercent() + '%' }">
+					<label class="barColour" data-bind="style: { height: yAxisValueAsPercent() + '%'}, attr : { for: 'calendarOption' + $index() }">
+						<span class="barValue" data-bind="style: { display: yAxisValue() === null ? 'none' : 'block' }">
+							<span>Your travel date</span>
+							<span class="price" data-bind="text: 'R' + yAxisValue() + 'pp'"> </span>
+							<span class="arrow-down"></span>
+						</span>
+					</label>
+				</li>
+			</ul>
+		</div>
+
+		<ul class="calXAxis" data-bind="foreach: b()">
+			<li data-bind="style: {width: xAxisValueAsPercent() + '%' }, css: (yAxisValue() == $parent.c().metadata.minValue() ? 'cheapest' : '')">
+				<input type="radio" name="chart" data-bind="value: xAxisValue, attr: {id: 'calendarOption' + $index()}" />
+				<label data-bind="text: xAxisValue, attr : { for: 'calendarOption' + $index() }"></label>
+			</li>
+		</ul>
+	</div>
+
+</body>
+</html>

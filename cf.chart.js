@@ -2,26 +2,14 @@
 /*jslint browser: true, nomen: true */
 /*global jQuery, ko */
 
-(function ($, ko, cf) {
+(function ($, ko, koChart) {
     "use strict";
-    if ($ === undefined) {
-        alert('jQuery not loaded.');
-    }
-
-    if (ko === undefined) {
-        alert('KnockoutJS not loaded.');
-    }
-
-    if (cf === undefined || cf === null) {
-        alert('CF not initialised');
-        cf = {};
-    }
-
+    koChart = koChart || {};
     // chartAxisProvider is a function that returns an array of x axis values to be used in the chart.
-    cf.Chart = function (chartAxisProvider, chartSettings) {
+    koChart.Chart = function (chartAxisProvider, chartSettings) {
 
         if (chartAxisProvider === undefined) {
-            alert("You must specify a chart axis provider like: new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider). A chart axis provider is essentially a function that returns an array of x axis values");
+            alert("You must specify a chart axis provider like: new koChart.Chart(koChart.ChartAxisProviders.dayChartAxisProvider). A chart axis provider is essentially a function that returns an array of x axis values");
         }
 
         var self, defaultSettings;
@@ -36,7 +24,7 @@
             minValue: ko.observable(),
             activeBars: ko.observable(),
             xAxisValuesDisplayNumber: 4,
-            yAxisValuesDisplayNumber: 4
+            yAxisValuesDisplayNumber: 5
         };
 
         self.visibleXAxisValues = ko.observableArray();
@@ -121,7 +109,7 @@
             var prop, mergedSettings;
             // Set up the default chart settings.
             defaultSettings = {
-                xAxisKeyMatchComparer: cf.ChartKeyMatchComparers.exactMatch
+                xAxisKeyMatchComparer: koChart.ChartKeyMatchComparers.exactMatch
             };
 
             // merge the user defined settings with the default settings.
@@ -157,14 +145,13 @@
                     yAxisValueAsPercent: ko.observable(null),
                     yAxisValueBeforeChange: null,
                     isActive: ko.observable(true),
-                    xAxisValueAsPercent: ko.computed(function () {
+                    xAxisValueAsPercent: function () {
                         var activeBars = $.grep(self.bars, function (x) {
                             return x.isActive();
                         });
 
-                        //return 100 / self.metadata.activeBars();
                         return 100 / activeBars.length;
-                    }),
+                    },
                     displayXAxisValue: ko.observable(false)
                 };
 
@@ -175,7 +162,7 @@
                         self.metadata.minValue(val);
                     }
 
-                    if (val > self.metadata.maxValue()) {
+                    if (self.metadata.maxValue() === undefined || val > self.metadata.maxValue()) {
                         self.metadata.maxValue(val);
                     } else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
                         // if we get here it means that this bar already had a value that was equal to the maxValue of all bars and we're now changing its value.
@@ -323,6 +310,7 @@
                 }
             }
 
+            // TODO: We only want to fiddle with the axis values if the chart is being trimmed.
             setAxisViewProperties();
 
             return true;
@@ -357,35 +345,8 @@
         initialise();
     };
 
-    // Chart Axis Providers
-    // These providers define the creation of an x axis for a chart.
-    cf.ChartAxisProviders = {
-        dayChartAxisProvider: function () {
-            var result, helpers, t, hourFormat, halfHourFormat;
-            result = ko.observableArray();
-            helpers = cf.ChartAxisProviders.helpers;
-            hourFormat = "{0}:00";
-            halfHourFormat = "{0}:30";
-            for (t = 0; t < 24; t += 1) {
-                result.push(helpers.formatString(hourFormat, t));
-                result.push(helpers.formatString(halfHourFormat, t));
-            }
-            return result();
-        },
-
-        helpers: {
-            formatString: function (format, value) {
-                if (value < 10) {
-                    format = "0" + format;
-                }
-
-                return format.replace("{0}", value);
-            }
-        }
-    };
-
     // Defines how a chart compares keys when inserting new bars
-    cf.ChartKeyMatchComparers = {
+    koChart.ChartKeyMatchComparers = {
         exactMatch: {
             equals: function (a, b) { return a === b; }
         },
@@ -394,8 +355,8 @@
         },
         exactMatchOrBetweenValuesMatch: {
             equals: function (a, b, c) {
-                return cf.ChartKeyMatchComparers.exactMatch.equals(a, b) || cf.ChartKeyMatchComparers.betweenValuesMatch.equals(a, b, c);
+                return koChart.ChartKeyMatchComparers.exactMatch.equals(a, b) || koChart.ChartKeyMatchComparers.betweenValuesMatch.equals(a, b, c);
             }
         }
     };
-}(jQuery, ko, window.__cf));
+}(jQuery, ko, koChart));

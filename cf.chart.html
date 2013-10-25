@@ -111,24 +111,25 @@
 	}
 	</style>
 	<script>
-		window.__cf = __cf = window.__cf || {};
-		cf = __cf;
+		window.koChart = koChart = window.koChart || {};
 	</script>
 	<script src="http://codeorigin.jquery.com/jquery-2.0.3.min.js"></script>
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/1.7.2/moment.min.js"></script>
+	
+	<script src="koChart.providers.js"></script>
 	<script src="cf.chart.js"></script>
 
 	<script>
-		var chartAxisProvider = cf.ChartAxisProviders.dayChartAxisProvider;
-
-		var chart = new cf.Chart(chartAxisProvider);
+		var chartAxisProvider = koChart.ChartAxisProviders.dayChartAxisProvider;
+		var chart = new koChart.Chart(chartAxisProvider);
 
 		// Adding value by key directly.
 		chart.setBarValue("06:00", 20);
 		chart.setBarValue("07:30", 40);
 		chart.setBarValue("17:30", 40);
 		
-		var chartVert = new cf.Chart(function(){ return ["abc", "def", "ghi", "jkl", "mno" ]; });
+		var chartVert = new koChart.Chart(function(){ return ["abc", "def", "ghi", "jkl", "mno" ]; });
 		chartVert.setBarValue("abc", 500);
 		chartVert.setBarValue("def", 300);
 		chartVert.setBarValue("ghi", 300);
