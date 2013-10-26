@@ -59,7 +59,6 @@
 		margin-bottom: 1%;
 		border: 1px solid #ccc;
 		position: relative;
-		overflow: hidden;
 	}
 
 	.calBars{
@@ -67,7 +66,6 @@
 		height: 100%;
 		margin: 0;
 		padding: 0;
-
 		position: absolute;
 	}
 	.calBars li{
@@ -132,7 +130,8 @@
 	}
 
 	.cheapest{
-		color: orange;
+		background-color: orange;
+		color: black;
 	}
 
 
@@ -154,15 +153,20 @@
 			var charts = {};
 			
 			var here = moment();
+			
 			var chartAxisProvider = koChart.ChartAxisProviders.monthChartAxisProvider(here);
 			var chart = new koChart.Chart(chartAxisProvider);
 
-			chart.setBarValue(1, 600);
-			chart.setBarValue(15, 400);
-			chart.setBarValue(30, 500);
-			chart.setBarValue(23, 100);
+			setTimeout(function(){
+				chart.setBarValue(1, 900);
+				chart.setBarValue(15, 600);
+				chart.setBarValue(30, 500);
+				chart.setBarValue(23, 400);
 
-			charts[here.month()] = chart;
+				// Cache chart for this month.
+				charts[here.month()] = chart;
+
+			}, 500);
 
 			var viewModel = {
 				c: ko.observable(chart),
@@ -174,8 +178,12 @@
 
 			var isAnimating = false;
 
-			function changeMonth(incrementalValue, slideDirection)
+			function animateMonthChange(slideDirection)
 			{
+				if (isAnimating) return;
+
+				isAnimating = true;
+				$(".barSlider").css({overflow: 'hidden'});
 
 				var current = $('.calBars').first();
 				var clone = current.clone();
@@ -192,11 +200,19 @@
 				var showAnimation = slideDirection == 'left' ? { left: 0 } : { left: 0 }
 
 				// Make the fake clone bugger off
-				clone.animate(hideAnimation, 1000, function(){ this.remove(); });
+				clone.animate(hideAnimation, 1000, function(){ 
+					this.remove(); 
+					$(".barSlider").css({overflow: 'visible'});
+					isAnimating = false;
+				});
 
 				// Bring back the propper chart into view.
 				current.animate(showAnimation, 1000);
+			}
 
+			function changeMonth(incrementalValue, slideDirection)
+			{
+				animateMonthChange(slideDirection);
 				var newChart, newChartAxisProvider;
 				here.add('months', incrementalValue);
 
@@ -212,10 +228,12 @@
 					charts[here.month()] = newChart;
 				}
 
-				newChart.setBarValue(1, 600);
-				newChart.setBarValue(15, 400);
-				newChart.setBarValue(30, 500);
-				newChart.setBarValue(23, 100);
+				setTimeout(function(){
+					newChart.setBarValue(1, 600);
+					newChart.setBarValue(15, 400);
+					newChart.setBarValue(30, 500);
+					newChart.setBarValue(23, 100);
+				}, 1000);
 
 				viewModel.c(newChart);
 				viewModel.b(newChart.getBars());

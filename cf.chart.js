@@ -35,6 +35,7 @@
             var allActive, ref, yRef, i, pos, midPoint, item, lastItem;
 
             // grab all the bars that are curretly active.
+            // and set them to not display an x axis value.
             allActive = $.grep(self.bars, function (bar) {
                 bar.displayXAxisValue(false);
                 return bar.isActive();
@@ -42,6 +43,7 @@
 
 
             if (allActive.length > 0) {
+                // Remove all of the values for the YAxis. We need to recalculate what they are.
                 self.visibleYAxisValues.removeAll();
 
                 yRef = self.metadata.maxValue() / self.metadata.yAxisValuesDisplayNumber;
@@ -157,14 +159,29 @@
 
                 // Each time a bars yAxisValue is changed.
                 bar.yAxisValue.subscribe(function (val) {
-                    var valuesArray, maxBarValue;
-                    if (val < self.metadata.minValue()) {
+                    var valuesArray, maxBarValue, minBarValue;
+
+                    // check if this new value is less than the minValue we have stored.
+                    if (self.metadata.minValue() === undefined || val < self.metadata.minValue()) {
                         self.metadata.minValue(val);
+                    }
+                    else if(bar.yAxisValueBeforeChange === self.metadata.minValue())
+                    {
+                        // Get the min yAxisValue we have available.
+                        valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
+                        minBarValue = Math.min.apply(Math, valuesArray);
+
+                        // If the max bar we have is less than the max value of the chart
+                        // reset the max value of the chart to be the max bar value.
+                        if (minBarValue > self.metadata.minValue()) {
+                            self.metadata.minValue(minBarValue);
+                        }
                     }
 
                     if (self.metadata.maxValue() === undefined || val > self.metadata.maxValue()) {
                         self.metadata.maxValue(val);
-                    } else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
+                    } 
+                    else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
                         // if we get here it means that this bar already had a value that was equal to the maxValue of all bars and we're now changing its value.
                         // if this value is the same as the max value we need to figure out what the max value bar is
                         // and set that value as the max value.
