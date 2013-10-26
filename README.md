@@ -42,7 +42,7 @@ Usage
 // This example uses a dayChartAxisProvider which is a function returning an array of hours 
 // ["00:00", "00:30", 01:00",...]
 
-var chart = new cf.Chart(cf.ChartAxisProviders.dayChartAxisProvider);
+var chart = new koChart.Chart(koChart.ChartAxisProviders.dayChartAxisProvider);
 
 var viewModel = {
   c: ko.observable(chart),
