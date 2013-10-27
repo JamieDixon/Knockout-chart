@@ -9,12 +9,10 @@
     koChart.Chart = function (chartAxisProvider, chartSettings) {
 
         if (chartAxisProvider === undefined) {
-            alert("You must specify a chart axis provider like: new koChart.Chart(koChart.ChartAxisProviders.dayChartAxisProvider). A chart axis provider is essentially a function that returns an array of x axis values");
+            throw "You must specify a chart axis provider like: new koChart.Chart(koChart.ChartAxisProviders.dayChartAxisProvider). A chart axis provider is essentially a function that returns an array of x axis values";
         }
 
-        var self, defaultSettings;
-        self = this;
-        defaultSettings = null;
+        var self = this;
 
         self.xAxisValues = [];
         self.bars = [];
@@ -22,9 +20,7 @@
         self.metadata = {
             maxValue: ko.observable(),
             minValue: ko.observable(),
-            activeBars: ko.observable(),
-            xAxisValuesDisplayNumber: 4,
-            yAxisValuesDisplayNumber: 5
+            activeBars: ko.observable()
         };
 
         self.visibleXAxisValues = ko.observableArray();
@@ -46,10 +42,10 @@
                 // Remove all of the values for the YAxis. We need to recalculate what they are.
                 self.visibleYAxisValues.removeAll();
 
-                yRef = self.metadata.maxValue() / self.metadata.yAxisValuesDisplayNumber;
+                yRef = self.metadata.maxValue() / chartSettings.yAxisValuesDisplayNumber;
 
                 // Add max and intermediate values
-                for (i = self.metadata.yAxisValuesDisplayNumber; i > 1; i -= 1) {
+                for (i = chartSettings.yAxisValuesDisplayNumber; i > 1; i -= 1) {
                     self.visibleYAxisValues.push({
                         value: yRef * i
                     });
@@ -107,37 +103,21 @@
             }
         }
 
-        function initialise() {
-            var prop, mergedSettings;
-            // Set up the default chart settings.
-            defaultSettings = {
-                xAxisKeyMatchComparer: koChart.ChartKeyMatchComparers.exactMatch
-            };
-
-            // merge the user defined settings with the default settings.
-            mergedSettings = defaultSettings;
-
-            for (prop in chartSettings) {
-                if (chartSettings.hasOwnProperty(prop)) {
-                    mergedSettings[prop] = chartSettings[prop];
+        function mergeSettings(defaults, custom)
+        {
+            var prop;
+            // Replace default settings with custom settings where applicable.
+            for (prop in custom) {
+                if (custom.hasOwnProperty(prop)) {
+                    defaults[prop] = custom[prop];
                 }
             }
 
-            // change settings to be a merge of the default plus the user defined settings
-            chartSettings = mergedSettings;
+            return defaults;
+        }
 
-            // create the x horizontal axis values
-            self.xAxisValues = chartAxisProvider();
-            self.metadata.activeBars(self.xAxisValues.length);
-
-            self.metadata.maxValue.subscribe(function () {
-                // recalculate all of the bars yAxisValueAsPercentage
-                /*jslint unparam: true*/
-                $.each(self.bars, function (index, val) {
-                    val.yAxisValueAsPercent((val.yAxisValue() / self.metadata.maxValue()) * 100);
-                });
-            });
-
+        function createBars()
+        {
             // create a bar for each x horizontal axis value
             /*jslint unparam: true*/
             $.each(self.xAxisValues, function (index, value) {
@@ -157,60 +137,34 @@
                     displayXAxisValue: ko.observable(false)
                 };
 
-                // Each time a bars yAxisValue is changed.
-                bar.yAxisValue.subscribe(function (val) {
-                    var valuesArray, maxBarValue, minBarValue;
-
-                    // check if this new value is less than the minValue we have stored.
-                    if (self.metadata.minValue() === undefined || val < self.metadata.minValue()) {
-                        self.metadata.minValue(val);
-                    }
-                    else if(bar.yAxisValueBeforeChange === self.metadata.minValue())
-                    {
-                        // Get the min yAxisValue we have available.
-                        valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
-                        minBarValue = Math.min.apply(Math, valuesArray);
-
-                        // If the max bar we have is less than the max value of the chart
-                        // reset the max value of the chart to be the max bar value.
-                        if (minBarValue > self.metadata.minValue()) {
-                            self.metadata.minValue(minBarValue);
-                        }
-                    }
-
-                    if (self.metadata.maxValue() === undefined || val > self.metadata.maxValue()) {
-                        self.metadata.maxValue(val);
-                    } 
-                    else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
-                        // if we get here it means that this bar already had a value that was equal to the maxValue of all bars and we're now changing its value.
-                        // if this value is the same as the max value we need to figure out what the max value bar is
-                        // and set that value as the max value.
-
-                        // Get the max yAxisValue we have available.
-                        valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
-                        maxBarValue = Math.max.apply(Math, valuesArray);
-
-                        // If the max bar we have is less than the max value of the chart
-                        // reset the max value of the chart to be the max bar value.
-                        if (maxBarValue < self.metadata.maxValue()) {
-                            self.metadata.maxValue(maxBarValue);
-                        }
-                    }
-
-                    bar.yAxisValueAsPercent((val / self.metadata.maxValue()) * 100);
-                });
-
-                // Before a bars yAxisValue is changed, save it's current value for later reference
-                bar.yAxisValue.subscribe(function (val) {
-                    bar.yAxisValueBeforeChange = val;
-                }, null, "beforeChange");
-
                 self.bars.push(bar);
             });
         }
+
+        function initialise() {
+            // Set up the default chart settings.
+            var defaultSettings = {
+                trimBars: false,
+                xAxisKeyMatchComparer: koChart.ChartKeyMatchComparers.exactMatch,
+                xAxisValuesDisplayNumber: 4,
+                yAxisValuesDisplayNumber: 5
+            };
+
+            // Merge user defined settings with the default settings.
+            chartSettings = mergeSettings(defaultSettings, chartSettings);
+
+            // create the x horizontal axis values
+            self.xAxisValues = chartAxisProvider();
+            self.metadata.activeBars(self.xAxisValues.length);
+            
+            createBars();
+            registerSubscriptions();
+        }
+
         self.resizeBarsAsPercentage = function (percentage) {
             $(".bar", self.chartContainer).css('width', percentage.toString() + "%");
         };
+
         // Hide zero values bars to the left and right of the first/last non zero bar.
         self.trimBars = function () {
             var seenValueLeft, seenValueRight, bars, barLast, currentBar;
@@ -360,6 +314,68 @@
         };
 
         initialise();
+
+        /* Subscriptions */
+        function registerSubscriptions()
+        {
+            /* Update min and max value when a bar has its yAxisValue property changed */
+            $.each(self.bars, function(index, bar){
+                bar.yAxisValue.subscribe(function (val) { bar.yAxisValueBeforeChange = val; }, null, "beforeChange");
+                bar.yAxisValue.subscribe(function(val) { updateMinAndMaxValues(val, bar) });
+            });
+
+            /* Update yAxisValueAsPercent when maxValue is updated */
+            self.metadata.maxValue.subscribe(function () {
+                /*jslint unparam: true*/
+                $.each(self.bars, function (index, val) {
+                    val.yAxisValueAsPercent((val.yAxisValue() / self.metadata.maxValue()) * 100);
+                });
+            });            
+        }
+        
+
+        function updateMinAndMaxValues (val, bar)
+        {
+            var valuesArray, maxBarValue, minBarValue;
+
+                    // check if this new value is less than the minValue we have stored.
+                    if (self.metadata.minValue() === undefined || val < self.metadata.minValue()) {
+                        self.metadata.minValue(val);
+                    }
+                    else if(bar.yAxisValueBeforeChange === self.metadata.minValue())
+                    {
+                        // Get the min yAxisValue we have available.
+                        valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
+                        minBarValue = Math.min.apply(Math, valuesArray);
+
+                        // If the max bar we have is less than the max value of the chart
+                        // reset the max value of the chart to be the max bar value.
+                        if (minBarValue > self.metadata.minValue()) {
+                            self.metadata.minValue(minBarValue);
+                        }
+                    }
+
+                    if (self.metadata.maxValue() === undefined || val > self.metadata.maxValue()) {
+                        self.metadata.maxValue(val);
+                    } 
+                    else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
+                        // if we get here it means that this bar already had a value that was equal to the maxValue of all bars and we're now changing its value.
+                        // if this value is the same as the max value we need to figure out what the max value bar is
+                        // and set that value as the max value.
+
+                        // Get the max yAxisValue we have available.
+                        valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
+                        maxBarValue = Math.max.apply(Math, valuesArray);
+
+                        // If the max bar we have is less than the max value of the chart
+                        // reset the max value of the chart to be the max bar value.
+                        if (maxBarValue < self.metadata.maxValue()) {
+                            self.metadata.maxValue(maxBarValue);
+                        }
+                    }
+
+                    bar.yAxisValueAsPercent((val / self.metadata.maxValue()) * 100);
+        };
     };
 
     // Defines how a chart compares keys when inserting new bars
