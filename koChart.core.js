@@ -134,7 +134,8 @@
 
                         return 100 / activeBars.length;
                     },
-                    displayXAxisValue: ko.observable(false)
+                    displayXAxisValue: ko.observable(false),
+                    hasValue: function() { return this.yAxisValue() !== null; }
                 };
 
                 self.bars.push(bar);
@@ -314,6 +315,41 @@
         };
 
         initialise();
+
+        /* Custom bindings */
+
+        ko.bindingHandlers.isMinValue = {
+            update: function(element, valueAccessor, allBindings, viewModel, bindingContext){
+                var cheapestClass = 'minValue';
+
+                $(element).removeClass(cheapestClass);
+
+                if(valueAccessor() == bindingContext.$parent.c().metadata.minValue())
+                {
+                    $(element).addClass(cheapestClass);
+                }
+            }
+        };
+
+        ko.bindingHandlers.variableWidthPercent = {
+            update: function(element, valueAccessor, allBindings, viewModel, bindingContext){
+                if(valueAccessor)
+                {
+                    var w = viewModel.xAxisValueAsPercent();
+                    $(element).css({width: w.toString() + "%"});
+                }
+            }
+        }
+
+        ko.bindingHandlers.variableHeightPercent = {
+            update: function(element, valueAccessor, allBindings, viewModel, bindingContext){
+                if(valueAccessor)
+                {
+                    var h = viewModel.yAxisValueAsPercent();
+                    $(element).css({height: h.toString() + "%"});
+                }
+            }
+        }
 
         /* Subscriptions */
         function registerSubscriptions()

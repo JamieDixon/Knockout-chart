@@ -129,7 +129,7 @@
 		left: 40%;
 	}
 
-	.cheapest{
+	.minValue{
 		background-color: orange;
 		color: black;
 	}
@@ -271,9 +271,9 @@
 
 		<div class="barSlider">
 			<ul class="calBars" data-bind="foreach: b()">
-				<li data-bind="style: {width: xAxisValueAsPercent() + '%' }">
-					<label class="barColour" data-bind="style: { height: yAxisValueAsPercent() + '%'}, attr : { for: 'calendarOption' + $index() }">
-						<span class="barValue" data-bind="style: { display: yAxisValue() === null ? 'none' : 'block' }">
+				<li data-bind="variableWidthPercent: true">
+					<label class="barColour" data-bind="variableHeightPercent: true, attr : { for: 'calendarOption' + $index() }">
+						<span class="barValue" data-bind="visible: hasValue()">
 							<span>Your travel date</span>
 							<span class="price" data-bind="text: 'R' + yAxisValue() + 'pp'"> </span>
 							<span class="arrow-down"></span>
@@ -284,7 +284,7 @@
 		</div>
 
 		<ul class="calXAxis" data-bind="foreach: b()">
-			<li data-bind="style: {width: xAxisValueAsPercent() + '%' }, css: (yAxisValue() == $parent.c().metadata.minValue() ? 'cheapest' : '')">
+			<li data-bind="isMinValue: yAxisValue(), variableWidthPercent: true">
 				<input type="radio" name="chart" data-bind="value: xAxisValue, attr: {id: 'calendarOption' + $index()}" />
 				<label data-bind="text: xAxisValue, attr : { for: 'calendarOption' + $index() }"></label>
 			</li>
