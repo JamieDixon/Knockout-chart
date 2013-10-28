@@ -59,7 +59,7 @@
                 );
 
                 // Set up the X Axis display values
-                ref = allActive.length / self.metadata.xAxisValuesDisplayNumber;
+                ref = allActive.length / chartSettings.xAxisValuesDisplayNumber;
 
                 self.visibleXAxisValues.removeAll();
 
@@ -71,7 +71,7 @@
                 });
 
                 // Add intermediate values
-                for (i = 1; i < self.metadata.xAxisValuesDisplayNumber - 1; i += 1) {
+                for (i = 1; i < chartSettings.xAxisValuesDisplayNumber - 1; i += 1) {
                     // get the start position of the segment containing our display value
                     pos = Math.floor(ref * i);
 
