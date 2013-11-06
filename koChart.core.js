@@ -14,13 +14,16 @@
 
         var self = this;
 
+        // An array of objects representing value and displayValue of a bars x axis
         self.xAxisValues = [];
         self.bars = [];
 
         self.metadata = {
             maxValue: ko.observable(),
             minValue: ko.observable(),
-            activeBars: ko.observable()
+            activeBars: ko.observable(),
+            displayMinValue: ko.observable(),
+            displayMaxValue: ko.observable()
         };
 
         self.visibleXAxisValues = ko.observableArray();
@@ -32,18 +35,20 @@
         }
 
         function tickRange(minVal, maxVal, tickCount) {
-            var range = maxVal - minVal;
-            var unRoundedTicksSize = range / (tickCount - 1);
-            var x = Math.ceil(log10(unRoundedTicksSize) - 1);
-            var pow10x = Math.pow(10, x);
-            var roundedTickRange = Math.ceil(unRoundedTicksSize / pow10x) * pow10x;
+            var range, unRoundedTicksSize, x, pow10X, roundedTickRange;
+            range = maxVal - minVal;
+            unRoundedTicksSize = range / (tickCount - 1);
+            x = Math.floor(log10(unRoundedTicksSize) - 1);
+            pow10X = Math.pow(10, x);
+            roundedTickRange = Math.ceil(unRoundedTicksSize / pow10X) * pow10X;
 
-            return roundedTickRange
+            return roundedTickRange;
+
         }
 
         function setAxisViewProperties() {
 
-            var allActive, ref, i, pos, midPoint, item, lastItem;
+            var allActive, ref, i, pos, midPoint, item, lastItem, min, max, newIncrimentTicks, count;
 
             // grab all the bars that are curretly active.
             // and set them to not display an x axis value.
@@ -57,42 +62,36 @@
                 // Remove all of the values for the YAxis. We need to recalculate what they are.
                 self.visibleYAxisValues.removeAll();
 
-                var min, max;
                 min = self.metadata.minValue();
                 max = self.metadata.maxValue();
-                
-
 
                 // If that min and max are not the same.
-                if (Math.floor(min) != Math.floor(max)) {
-                    min = min - ((max - min) / chartSettings.yAxisValuesDisplayNumber);
-                    
-                    var incrimentTicks = tickRange(min, max, chartSettings.yAxisValuesDisplayNumber);
-                    var count = max;
+                /*if (Math.floor(min) != Math.floor(max)) {*/
 
-                    for (i = chartSettings.yAxisValuesDisplayNumber; i > 0; i -= 1) {
-                        self.visibleYAxisValues.push({
-                            value: count
-                        });
-                        count -= incrimentTicks;
-                    }
+                count = max;
+                // Make the max a bit higher and the min a bit lower.
+                // so that our bars aren't touching the top or bottom.
+                min -= (min / chartSettings.yAxisValuesDisplayNumber) / chartSettings.yAxisValuesDisplayNumber;
+                max += (max / chartSettings.yAxisValuesDisplayNumber) / chartSettings.yAxisValuesDisplayNumber;
+
+                count = min;
+
+                // Recalculate the number of ticks based on the new min max
+                newIncrimentTicks = tickRange(min, max, chartSettings.yAxisValuesDisplayNumber);
+
+                for (i = 0; i < chartSettings.yAxisValuesDisplayNumber; i += 1) {
+                    self.visibleYAxisValues.push({
+                        value: Math.floor(count)
+                    });
+
+                    count += newIncrimentTicks;
                 }
-                else {
-                    // Spoof a Y axis
-                    console.log("Dems max min ars the sames");
-                    incrimentTicks =(max * 2) / chartSettings.yAxisValuesDisplayNumber;
-                    count = max * 2;
-                    
-                    for (i = chartSettings.yAxisValuesDisplayNumber; i > 0; i -= 1) {
-                        console.log("Be addin some yAxis values, yall");
-                        self.visibleYAxisValues.push({
-                            value: count
-                        });
-                        count -= incrimentTicks;
-                    }
 
-                    console.log(self.visibleYAxisValues());
+                self.visibleYAxisValues(self.visibleYAxisValues().reverse());
 
+                if (isNaN(self.visibleYAxisValues()[0].value) === false) {
+                    self.metadata.displayMinValue(self.visibleYAxisValues()[self.visibleYAxisValues().length - 1].value);
+                    self.metadata.displayMaxValue(self.visibleYAxisValues()[0].value);
                 }
 
                 // Set up the X Axis display values
@@ -177,26 +176,6 @@
             });
         }
 
-        function initialise() {
-            // Set up the default chart settings.
-            var defaultSettings = {
-                trimBars: false,
-                xAxisKeyMatchComparer: koChart.ChartKeyMatchComparers.exactMatch,
-                xAxisValuesDisplayNumber: 4,
-                yAxisValuesDisplayNumber: 5
-            };
-
-            // Merge user defined settings with the default settings.
-            chartSettings = mergeSettings(defaultSettings, chartSettings);
-
-            // create the x horizontal axis values
-            self.xAxisValues = chartAxisProvider();
-            self.metadata.activeBars(self.xAxisValues.length);
-
-            createBars();
-            registerSubscriptions();
-        }
-
         self.resizeBarsAsPercentage = function (percentage) {
             $(".bar", self.chartContainer).css('width', percentage.toString() + "%");
         };
@@ -245,11 +224,97 @@
             return self.getBars();
         };
 
+        function isFunction(functionToCheck) {
+            var getType = {};
+            return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+        }
+
+        function activateBarsBetweenActiveBars() {
+            // This function only really applies to trimmed charts.
+            // TODO: Once we have a chartSetting for isTrimmed, we can ignore this function if isTrimmed == false.
+
+            var bars, i, y, firstActiveIndex, lastActiveIndex, firstActiveFound, lastActiveFound;
+            // Check if there are any non-active bars between the bars with values.
+            // All bars between active bars should also be active.
+            bars = self.bars;
+            y = bars.length - 1;
+            firstActiveIndex = null;
+            lastActiveIndex = null;
+
+            firstActiveFound = false;
+            lastActiveFound = false;
+
+            // Find the first and last active bars respectively.
+            $.each(bars, function (index, value) {
+
+                if (firstActiveFound && lastActiveFound) {
+                    return false;
+                }
+
+                firstActiveFound = value.isActive();
+                firstActiveIndex = index;
+
+                lastActiveFound = bars[y].isActive();
+                lastActiveIndex = y;
+
+                y -= 1;
+                return true;
+            });
+
+            // For all bars between the first active bars on the left and right, set them to active.
+            for (i = firstActiveIndex; i < lastActiveIndex; i += 1) {
+                if (!bars[i].isActive()) {
+                    self.metadata.activeBars(self.metadata.activeBars() + 1);
+                }
+
+                bars[i].isActive(true);
+                bars[i].yAxisValue(bars[i].yAxisValue());
+            }
+        }
+
+        function calculateValueAsRangePercentage(rangeMin, rangeMax, value) {
+            var valMinDistance, minMaxDistance;
+            //  n - m
+            //  ------- X 100
+            //  M - m
+
+            if (value === null) {
+                return 0;
+            }
+
+            if (rangeMin === rangeMax) {
+                return 100;
+            }
+
+            // distance between current value and min value.
+            valMinDistance = Math.round(value) - Math.round(rangeMin);
+            // distance between min and max values
+            minMaxDistance = Math.round(rangeMax) - Math.round(rangeMin);
+
+            return (valMinDistance / minMaxDistance) * 100;
+        }
+
+        function setBarHeightPercentages() {
+            var max, min, ratio;
+            max = self.metadata.displayMaxValue();
+            min = self.metadata.displayMinValue();
+
+            // Calculate the % height of each bar based on it being within a range of minValue() to maxValue().
+            /*jslint unparam: true*/
+            $.each(self.bars, function (index, val) {
+                ratio = calculateValueAsRangePercentage(min, max, val.yAxisValue());
+                val.yAxisValueAsPercent(ratio);
+            });
+        }
+
         // Set bar values based on a collection of bar objects.
         /*jslint unparam: true*/
         self.setBarValues = function (barCollection) {
+            var xAxisValue, yAxisValue;
             $.each(barCollection, function (index, value) {
-                self.setBarValue(value.xAxisValue, value.yAxisValue());
+                xAxisValue = isFunction(value.xAxisValue) ? value.xAxisValue() : value.xAxisValue;
+                yAxisValue = isFunction(value.yAxisValue) ? value.yAxisValue() : value.yAxisValue;
+                self.setBarValue(xAxisValue, yAxisValue);
             });
         };
 
@@ -258,7 +323,7 @@
             var bars, matchingBars;
             // If only one argument passed, assume it's a bar object.
             if (arguments.length === 1) {
-                return self.setBarValue(xAxisReference.xAxisValue, xAxisReference.yAxisValue());
+                return self.setBarValue(xAxisReference.xAxisValue.value, xAxisReference.yAxisValue());
             }
 
             // Figure out where this bar fits in relation to our bars collection.
@@ -267,7 +332,7 @@
             // Find all the bars that match our xAxisReference.
             matchingBars = $.grep(bars, function (item, index) {
                 var nextBarIndex = index < bars.length - 1 ? index + 1 : index;
-                return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue, bars[nextBarIndex].xAxisValue);
+                return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue.value, bars[nextBarIndex].xAxisValue.value);
             });
 
             // Set the new value for this bar. Since everything is byRef in JS this will ammend the self.bars collection.
@@ -288,31 +353,15 @@
 
 
         self.getBars = function () {
-            var ratio, valuesArray, min, max, axisValCount;
+            var valuesArray;
             // Set the min and max values in the chart.
             valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
             self.metadata.maxValue(Math.max.apply(Math, valuesArray));
             self.metadata.minValue(Math.min.apply(Math, valuesArray));
 
-            min = self.metadata.minValue();
-            max = self.metadata.maxValue();
-            /*jslint unparam: true*/
-            /*$.each(self.bars, function (index, value) {
-                value.yAxisValueAsPercent((value.yAxisValue() / (self.metadata.maxValue() - self.metadata.minValue())) * 100);
-            });*/
-            
-            axisValCount = self.visibleYAxisValues().length - 1;
+            setAxisViewProperties();
+            setBarHeightPercentages();
 
-            if (axisValCount > 0) {
-                max = self.visibleYAxisValues()[0].value;
-                min = self.visibleYAxisValues()[axisValCount].value;
-            }
-            
-            // Calculate the % height of each bar based on it being within a range of minValue() to maxValue().
-            $.each(self.bars, function (index, val) {
-                ratio = calculateValueAsRangePercentage(min, max, val.yAxisValue());
-                val.yAxisValueAsPercent(ratio);
-            });
 
             return self.bars;
         };
@@ -323,25 +372,26 @@
             // Find all the bars that match our xAxisReference.
             matchingBars = $.grep(self.bars, function (item, index) {
                 var nextBarIndex = index < self.bars.length - 1 ? index + 1 : index;
-                return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue, self.bars[nextBarIndex].xAxisValue);
+                return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue.value, self.bars[nextBarIndex].xAxisValue.value);
             });
 
             return matchingBars.length > 0 ? matchingBars[0].yAxisValue() : null;
         };
 
-        initialise();
-
         /* Custom bindings */
-
         ko.bindingHandlers.isMinValue = {
             update: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
                 var cheapestClass = 'minValue';
 
                 $(element).removeClass(cheapestClass);
 
-                if (valueAccessor() == bindingContext.$parent.c().metadata.minValue()) {
+                if (valueAccessor() === bindingContext.$parent.c().metadata.minValue()) {
                     $(element).addClass(cheapestClass);
+
+                    return true;
                 }
+
+                return false;
             }
         };
 
@@ -362,114 +412,14 @@
             }
         };
 
-        /* Subscriptions */
-        function registerSubscriptions() {
-            /* Subscriptions for each bar property change */
-            $.each(self.bars, function (index, bar) {
-                bar.yAxisValue.subscribe(function (val) { bar.yAxisValueBeforeChange = val; }, null, "beforeChange");
-                bar.yAxisValue.subscribe(function (val) { updateMinAndMaxValues(val, bar); });
-                bar.yAxisValue.subscribe(function () {
-                    setAxisViewProperties();
-                    setBarHeightPercentages();
-                });
-                
-                /*bar.yAxisValue.subscribe(setBarHeightPercentages);*/
-                bar.yAxisValue.subscribe(activateBarsBetweenActiveBars);
-            });
-        }
-
-        function setBarHeightPercentages() {
-            var max, min, ratio, axisValCount;
-            max = self.metadata.maxValue();
-            min = self.metadata.minValue();
-            axisValCount = self.visibleYAxisValues().length - 1;
-            
-            if (axisValCount > 0) {
-                max = self.visibleYAxisValues()[0].value;
-                min = self.visibleYAxisValues()[axisValCount].value;
-            }
-
-            // Calculate the % height of each bar based on it being within a range of minValue() to maxValue().
-            $.each(self.bars, function (index, val) {
-                ratio = calculateValueAsRangePercentage(min, max, val.yAxisValue());
-                val.yAxisValueAsPercent(ratio);
-            });
-        }
-
-        function activateBarsBetweenActiveBars() {
-            // This function only really applies to trimmed charts.
-            // TODO: Once we have a chartSetting for isTrimmed, we can ignore this function if isTrimmed == false.
-
-            var bars, i, x, y, firstActiveIndex, lastActiveIndex, firstActiveFound, lastActiveFound;
-            // Check if there are any non-active bars between the bars with values.
-            // All bars between active bars should also be active.
-            bars = self.bars;
-            x = 0;
-            y = bars.length - 1;
-            firstActiveIndex = null;
-            lastActiveIndex = null;
-
-            firstActiveFound = false;
-            lastActiveFound = false;
-
-            // Find the index of the first and last active bars on the left and right respectively.
-            while (!firstActiveFound || !lastActiveFound) {
-                if (!firstActiveFound && bars[x].isActive()) {
-                    firstActiveIndex = x;
-                    firstActiveFound = true;
-                }
-
-                if (!lastActiveFound && bars[y].isActive()) {
-                    lastActiveIndex = y;
-                    lastActiveFound = true;
-                }
-
-                x += 1;
-                y -= 1;
-            }
-
-            // For all bars between the first active bars on the left and right, set them to active.
-            for (i = firstActiveIndex; i < lastActiveIndex; i += 1) {
-                if (!bars[i].isActive()) {
-                    self.metadata.activeBars(self.metadata.activeBars() + 1);
-                }
-
-                bars[i].isActive(true);
-                bars[i].yAxisValue(bars[i].yAxisValue());
-            }
-        }
-
-        function calculateValueAsRangePercentage(rangeMin, rangeMax, value) {
-            //  n - m
-            //  ------- X 100
-            //  M - m
-
-            if (value == null) {
-                return 0;
-            }
-            
-            if (rangeMin == rangeMax) {
-                return 100;
-            }
-
-            // distance between current value and min value.
-            var valMinDistance = Math.round(value) - Math.round(rangeMin);
-            // distance between min and max values
-            var minMaxDistance = Math.round(rangeMax) - Math.round(rangeMin);
-
-            return (valMinDistance / minMaxDistance) * 100;
-        }
-
-
         function updateMinAndMaxValues(val, bar) {
             var valuesArray, maxBarValue, minBarValue;
 
             // check if this new value is less than the minValue we have stored.
             if (self.metadata.minValue() === undefined || val < self.metadata.minValue()) {
                 self.metadata.minValue(val);
-            }
-            else if (bar.yAxisValueBeforeChange === self.metadata.minValue()) // If the previous value was equal to the minValue we have, reset the minValue.
-            {
+            } else if (bar.yAxisValueBeforeChange === self.metadata.minValue()) {
+                // If the previous value was equal to the minValue we have, reset the minValue.
                 // Get the min yAxisValue we have available.
                 valuesArray = $.map(self.bars, function (item) { return item.yAxisValue(); });
                 minBarValue = Math.min.apply(Math, valuesArray);
@@ -483,8 +433,7 @@
 
             if (self.metadata.maxValue() === undefined || val > self.metadata.maxValue()) {
                 self.metadata.maxValue(val);
-            }
-            else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
+            } else if (bar.yAxisValueBeforeChange === self.metadata.maxValue()) {
                 // if we get here it means that this bar already had a value that was equal to the maxValue of all bars and we're now changing its value.
                 // if this value is the same as the max value we need to figure out what the max value bar is
                 // and set that value as the max value.
@@ -499,7 +448,44 @@
                     self.metadata.maxValue(maxBarValue);
                 }
             }
-        };
+        }
+
+        /* Subscriptions */
+        function registerSubscriptions() {
+
+            /* Subscriptions for each bar property change */
+            $.each(self.bars, function (index, bar) {
+                bar.yAxisValue.subscribe(function (val) { bar.yAxisValueBeforeChange = val; }, null, "beforeChange");
+                bar.yAxisValue.subscribe(function (val) { updateMinAndMaxValues(val, bar); });
+                bar.yAxisValue.subscribe(function () {
+                    setAxisViewProperties();
+                    setBarHeightPercentages();
+                });
+                bar.yAxisValue.subscribe(activateBarsBetweenActiveBars);
+            });
+        }
+
+        function initialise() {
+            // Set up the default chart settings.
+            var defaultSettings = {
+                trimBars: false,
+                xAxisKeyMatchComparer: koChart.ChartKeyMatchComparers.exactMatch,
+                xAxisValuesDisplayNumber: 7,
+                yAxisValuesDisplayNumber: 4
+            };
+
+            // Merge user defined settings with the default settings.
+            chartSettings = mergeSettings(defaultSettings, chartSettings);
+
+            // create the x horizontal axis values
+            self.xAxisValues = chartAxisProvider();
+            self.metadata.activeBars(self.xAxisValues.length);
+
+            createBars();
+            registerSubscriptions();
+        }
+
+        initialise();
     };
 
     // Defines how a chart compares keys when inserting new bars

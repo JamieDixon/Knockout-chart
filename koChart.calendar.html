@@ -258,38 +258,56 @@
 	</script>
 </head>
 <body>
-	<div class="calendarBarChart">
-		<div class="calendarNav">
-			<button id="prevMonth">&lt;</button>
-			<span data-bind="text: mo().format('MMMM YYYY')"></span>
-			<button id="nextMonth">&gt;</button>
-		</div>
+	<article class="calendarBarChart clearfix" id="outboundChart">
+        <h3>Depart <span>( select your date )</span></h3>
 
-			<ul class="calYAxis" data-bind="foreach: c().visibleYAxisValues()">
-				<li data-bind="text: 'R' + Math.round(value) + 'pp'"></li>
-			</ul>
+        <div class="calendarNav">
+            <button class="prevMonth" data-bind="click: function() { var clone = mo().clone(); clone.add('month', -1); mo(clone); }">&lt;</button>
+            <span data-bind="text: mo().format('MMMM YYYY')"></span>
+            <button class="nextMonth" data-bind="click: function() { var clone = mo().clone(); clone.add('month', 1); mo(clone); }">&gt;</button>
+        </div>
 
-		<div class="barSlider">
-			<ul class="calBars" data-bind="foreach: b()">
-				<li data-bind="variableWidthPercent: true">
-					<label class="barColour" data-bind="variableHeightPercent: true, attr : { for: 'calendarOption' + $index() }">
-						<span class="barValue" data-bind="visible: hasValue()">
-							<span>Your travel date</span>
-							<span class="price" data-bind="text: 'R' + yAxisValue() + 'pp'"> </span>
-							<span class="arrow-down"></span>
-						</span>
-					</label>
-				</li>
-			</ul>
-		</div>
+        <!-- ko with: c() -->
+        <ul class="calYAxis" data-bind="foreach: visibleYAxisValues()">
+            <li>
+                <span data-bind="price: value"></span>
+            </li>
+        </ul>
+        <!-- /ko -->
 
-		<ul class="calXAxis" data-bind="foreach: b()">
-			<li data-bind="isMinValue: yAxisValue(), variableWidthPercent: true">
-				<input type="radio" name="chart" data-bind="value: xAxisValue, attr: {id: 'calendarOption' + $index()}" />
-				<label data-bind="text: xAxisValue, attr : { for: 'calendarOption' + $index() }"></label>
-			</li>
-		</ul>
-	</div>
 
+        <div class="barSlider">
+            <ul class="calBars" data-bind="foreach: b()">
+                <li data-bind="variableWidthPercent: true, isMinValue: yAxisValue(), isSelectedDay: xAxisValue.value">
+                    <label class="barColour" data-bind="variableHeightPercent: true, attr : { for: 'calendarOption' + $index() }">
+                        <span class="barValue" data-bind="visible: hasValue()">
+                            <span>Your travel date</span>
+                            <span class="price" data-bind="price: yAxisValue()"></span>
+                            <span>pp</span>
+                            <span class="arrow-down"></span>
+                        </span>
+                    </label>
+                </li>
+            </ul>
+        </div>
+
+        <ul class="calXAxis" data-bind="foreach: b()">
+            <li data-bind="isMinValue: yAxisValue(), variableWidthPercent: true, isWeekendDay: xAxisValue.displayValue">
+                <div class="xAxisColour">
+                    <input type="radio" name="chart" data-bind="value: xAxisValue.value, attr: {id: 'calendarOption' + $index(), 'data-price': yAxisValue() }, handleChange: true, isSelectedDay: xAxisValue.value" />
+                    <label data-bind="text: xAxisValue.value, attr : { for: 'calendarOption' + $index() }"></label>
+                    <label data-bind="text: xAxisValue.displayValue, attr : { for: 'calendarOption' + $index() }" class="dayOfWeekLabel"></label>
+                    <label class="cheapest" data-bind="attr : { for: 'calendarOption' + $index() }">
+                        Cheapest <span class="icon">&nbsp;</span>
+                        <span>
+                            <span data-bind="price: yAxisValue()"></span>
+                            <span>pp</span>
+                        </span>
+
+                    </label>
+                </div>
+            </li>
+        </ul>
+    </article>
 </body>
 </html>
