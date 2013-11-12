@@ -5,6 +5,7 @@
 	<title>Chart view</title>
 
 	<style>
+	tbody{position: absolute;}
 
 	.calendarNav {
     width: 44%;
@@ -58,19 +59,21 @@ html, body{
 }
 	
 .calendarBarChart{
-	width: 700px;
+	width: 624px;
+	height: 430px;
 	font-size: 0.8em;
 	position: relative;
+	overflow: hidden;
 }
 
-.calBars{
+.calendarBarChart table{
+	width: 100%;
 	height: 100%;
 }
-
-.calendarBarChart table{width: 100%;}
 .calendars td div{
 	height: 49px;
 	width: 83px;
+	position: relative;	
 }
 .calendars td{
 	border: 1px solid #A3AFC1;
@@ -84,7 +87,6 @@ html, body{
 		position: absolute;
 		top: 0;
 		cursor: pointer;
-		border: 1px solid red;
 	}
 
 	.calendars input{
@@ -96,11 +98,6 @@ html, body{
 		top: 0;
 		right: 3px;
 		font-weight: bold;
-	}
-
-
-	.calendars table{
-		border-collapse: collapse;
 	}
 
 	tr.calRow td.hasPrice{
@@ -247,23 +244,6 @@ html, body{
 		    return r;
 		}
 
-		self.setAsSelectedDate = function ($parent, data) {
-			var clone = $parent.mo().clone();
-			clone.date(data.xAxisValue.value);
-            $parent.selectedDate(clone);
-            $parent.day(data.xAxisValue.value);
-            $parent.month($parent.mo().month());
-            return true;
-        };
-
-		/*self.setSelectedDay = function ($parent, $data) {
-			// Only allow selection of dates with prices.
-			if($data.yAxisValue() != null)
-			{
-				$parent.selectedDate($data.xAxisValue.value);
-			}
-		};*/
-
 		// Public methods
 		self.initialise = function(){
 			var originIata, destIata, departureDay, departStart, returnStart, ajaxEndpoint;
@@ -271,7 +251,20 @@ html, body{
 			self.ui = new koChart.ui();
 
 			// Kill the animation for this type of chart view.
-			self.ui.animateMonthChange = function(){ return true; };
+			self.ui.animateMonthChange = function(slideDirection, chartDom){
+				var tbody = chartDom.find(".calBars").first();
+				var clone = tbody.clone();
+
+				var slideDir = slideDirection == "left" ? {left: -650 } : { left: 650 };
+				var hidOrigDir = slideDirection == "left" ? {left: 650 } : {left: -650 }
+
+				clone.addClass("clone");
+				tbody.before(clone);
+				tbody.css(hidOrigDir);
+				clone.animate(slideDir, 1000, function(){ clone.remove(); });
+				tbody.animate({left: 0}, 1000);
+			 return true; 
+			};
 
 			ajaxEndpoint = "data/jsonSample.json";
 
@@ -297,7 +290,8 @@ html, body{
                     month: ko.observable(outboundDate.month()),
                     selectedDate: ko.observable(outboundDate),
                     selectedPrice: ko.observable(0),
-                    weekGroups: ko.observable(outboundWeekGroups)
+                    weekGroups: ko.observable(outboundWeekGroups),
+                    cssPrefix: "outbound"
 				},
 				inbound: {
 					c: ko.observable(inboundChart),
@@ -308,7 +302,8 @@ html, body{
 					month: ko.observable(inboundDate.month()),
 					selectedDate: ko.observable(inboundDate),
 					selectedPrice: ko.observable(0),
-					weekGroups: ko.observable(inboundWeekGroups)
+					weekGroups: ko.observable(inboundWeekGroups),
+					cssPrefix: "inbound"
 				}
 			};
 
@@ -348,12 +343,10 @@ html, body{
 				{
 					var mainParent = bindingContext.$parents[bindingContext.$parents.length - 2];
 
-					var selectedDate = mainParent.selectedDate();
 					if(viewModel != null)
 					{
-						if(viewModel.xAxisValue.value === selectedDate.date() && mainParent.mo().month() === mainParent.month())
+						if(viewModel.xAxisValue.value == mainParent.day() && mainParent.mo().month() == mainParent.month())
 						{
-
 							$(element).addClass("selected");
 						}
 						else
@@ -373,6 +366,8 @@ html, body{
                     $(element).change(function () {
                         elem = $(this);
                         newDate = vm.mo().clone().date(elem.val());
+                        vm.day(elem.val());
+                        vm.month(newDate.month());
                         vm.selectedPrice(elem.data("price"));
                         vm.selectedDate(newDate);
                     });
@@ -388,11 +383,8 @@ html, body{
             };
 
 			self.submitSearch = function(){
-				var outDate = self.charts.outbound.mo().date(self.charts.outbound.selectedDate());
-				var inDate = self.charts.inbound.mo().date(self.charts.inbound.selectedDate());
-
-				console.log(outDate);
-				console.log(inDate);
+				console.log(self.charts.outbound.selectedDate());
+				console.log(self.charts.inbound.selectedDate());
 			}
 
 			ko.applyBindings(self);
@@ -425,17 +417,17 @@ html, body{
 			<th>S</th>
 		</tr>
 	</thead>
-	<tbody class="calBars" data-bind="foreach: weekGroups()">
-		<tr data-bind="foreach: $data" class="calRow">
-			<!-- ko if: $data != null && $data.yAxisValue() > 0 -->
-			<td data-bind="isSelected: $data.xAxisValue.value, isMinValue: $data.yAxisValue()" class="hasPrice">
+	<tbody class="calBars" data-bind="foreach: { data: weekGroups(), as: 'weekGroups'}">
+		<tr data-bind="foreach: {data: weekGroups, as: 'bar'}" class="calRow">
+			<!-- ko if: bar != null && bar.yAxisValue() > 0 -->
+			<td data-bind="isSelected: bar.xAxisValue.value, isMinValue: bar.yAxisValue()" class="hasPrice">
 				<div>
-					<label data-bind="attr: {for: 'calRad' + $parentContext.$index().toString() + $index().toString()}">
-						<span data-bind="text: $data.xAxisValue.value" class="dayNumeral"></span>
+					<label data-bind="attr: {for: $parentContext.$parent.cssPrefix + 'calRad' + $parentContext.$index() + $index()}">
+						<span data-bind="text: bar.xAxisValue.value" class="dayNumeral"></span>
 						<span class="selectedMsg">Your travel date</span>
 						<span class="cheapestMsg">Cheapest <span class="icon">&nbsp;</span></span>
 						<span class="price">
-							<span data-bind="price: $data.yAxisValue()"></span>
+							<span data-bind="price: bar.yAxisValue()"></span>
 							pp
 						</span>
 					</label>
@@ -443,16 +435,18 @@ html, body{
 					<input 
 					type="radio" 
 					name="calRad" 
-					data-bind="handleChange: true, value: $data.xAxisValue.value, attr: {id: 'calRad' + $parentContext.$index().toString() + $index().toString() }" />
+					data-bind="handleChange: true, value: bar.xAxisValue.value, attr: {id: $parentContext.$parent.cssPrefix + 'calRad' + $parentContext.$index() + $index(), 'data-price': bar.yAxisValue() }" />
 				</div>
 			</td>
 			<!-- /ko -->
 
-			<!-- ko if: $data === null || $data.yAxisValue() === null -->
+			<!-- ko if: bar === null || bar.yAxisValue() === null -->
 				<td class="noPrice">
-					<!-- ko if: $data != null && $data.xAxisValue != null -->
-					<span data-bind="text: $data.xAxisValue.value" class="dayNumeral"></span>
+					<div>
+					<!-- ko if: bar != null && bar.xAxisValue != null -->
+					<span data-bind="text: bar.xAxisValue.value" class="dayNumeral"></span>
 					<!-- /ko -->
+					</div>
 				</td>
 			<!-- /ko -->
 		</tr>
