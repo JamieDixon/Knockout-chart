@@ -379,25 +379,7 @@
         };
 
         /* Custom bindings */
-        ko.bindingHandlers.isMinValue = {
-            update: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
-                var cheapestClass = "minValue";
-
-                // Get the object one below the $root.
-                var mainParent  = bindingContext.$parents[bindingContext.$parents.length - 2];
-
-                $(element).removeClass(cheapestClass);
-
-                if (valueAccessor() === mainParent.c().metadata.minValue()) {
-                    $(element).addClass(cheapestClass);
-
-                    return true;
-                }
-
-                return false;
-            }
-        };
-
+        
         ko.bindingHandlers.variableWidthPercent = {
             update: function (element, valueAccessor, allBindings, viewModel) {
                 if (valueAccessor) {

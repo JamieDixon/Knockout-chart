@@ -69,6 +69,7 @@ html, body{
 .calendarBarChart table{
 	width: 100%;
 	height: 100%;
+	border-collapse: collapse;
 }
 .calendars td div{
 	height: 49px;
@@ -196,7 +197,7 @@ html, body{
 			padding = [];
 
 			// Set the day to the 1st of the month and get the day name
-			firstDayOfDate = date.date(1).format("ddd");
+			firstDayOfDate = date.clone().date(1).format("ddd");
 			daysToPad = dayValues[firstDayOfDate] - dayValues[firstDayName];
 
 			for(i = 1; i <= daysToPad; i++)
@@ -250,7 +251,7 @@ html, body{
 			
 			self.ui = new koChart.ui();
 
-			// Kill the animation for this type of chart view.
+			// Change the animation for this type of chart view.
 			self.ui.animateMonthChange = function(slideDirection, chartDom){
 				var tbody = chartDom.find(".calBars").first();
 				var clone = tbody.clone();

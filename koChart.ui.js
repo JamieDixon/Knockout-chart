@@ -158,4 +158,37 @@ koChart.ui = function () {
                   .html("<span class=\"symbol\">R </span><span class=\"value\">" + convertedValue + "</span>");
                 }
         };
+
+        ko.bindingHandlers.isMinValue = {
+            update: function (element, valueAccessor, allBindings, barViewModel, bindingContext) {
+                var cheapestClass = "minValue";
+
+                // Get the object one below the $root.
+                var mainParent  = bindingContext.$parents[bindingContext.$parents.length - 2];
+
+               $(element).removeClass(cheapestClass);
+
+                if (valueAccessor() === mainParent.c().metadata.minValue()) {
+
+                    // Other bars that are also have the min value.
+                    var barsWithMinValue = mainParent.b().filter(function (bar) {
+                        return bar.hasMinValue;
+                    });
+
+                    $.each(barsWithMinValue, function(bar){
+                        bar.hasMinValue = false;
+                    })
+
+                    barViewModel.hasMinValue = true;
+
+                    console.log(barsWithMinValue);
+
+                    $(element).addClass(cheapestClass);
+
+                    return true;
+                }
+
+                return false;
+            }
+        };
     };
