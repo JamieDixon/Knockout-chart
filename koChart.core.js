@@ -334,7 +334,7 @@
                 var nextBarIndex = index < bars.length - 1 ? index + 1 : index;
                 return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue.value, bars[nextBarIndex].xAxisValue.value);
             });
-
+            
             // Set the new value for this bar. Since everything is byRef in JS this will ammend the self.bars collection.
             if (matchingBars.length > 0) {
                 // If the bar we're adding is about to become active for the first time, incriment the activeBars count.
@@ -381,11 +381,14 @@
         /* Custom bindings */
         ko.bindingHandlers.isMinValue = {
             update: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
-                var cheapestClass = 'minValue';
+                var cheapestClass = "minValue";
+
+                // Get the object one below the $root.
+                var mainParent  = bindingContext.$parents[bindingContext.$parents.length - 2];
 
                 $(element).removeClass(cheapestClass);
 
-                if (valueAccessor() === bindingContext.$parent.c().metadata.minValue()) {
+                if (valueAccessor() === mainParent.c().metadata.minValue()) {
                     $(element).addClass(cheapestClass);
 
                     return true;
@@ -486,7 +489,7 @@
         }
 
         initialise();
-    };
+    };  
 
     // Defines how a chart compares keys when inserting new bars
     koChart.ChartKeyMatchComparers = {

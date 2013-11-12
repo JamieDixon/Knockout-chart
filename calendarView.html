@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Chart view</title>
+
+	<style>
+
+	.calendarNav {
+    width: 44%;
+    margin: 0 auto;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 20px;
+    font-family: arial;
+    padding-left: 13%;
+}
+
+    .calendarNav .disabled {
+        background: #eef2f6;
+    }
+
+    .calendarNav button {
+        background: #ffe789;
+        border: 1px solid #98a3b6;
+        border-radius: 4px;
+        width: 26px;
+        line-height: 1em;
+        padding: 1px;
+    }
+
+        .calendarNav button:hover {
+            color: #ffffff;
+            background-color: #4e90ff;
+        }
+
+    .calendarNav span {
+        display: inline-block;
+        /*width: 200px;*/
+        width: 62%;
+        text-align: center;
+    }
+
+html, body{
+	font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+ .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    opacity: 0.5;
+    background: #FFFFFF url("images/ajax-loader.gif") 50% 55% no-repeat;
+}
+	
+.calendarBarChart{
+	width: 700px;
+	font-size: 0.8em;
+	position: relative;
+}
+
+.calBars{
+	height: 100%;
+}
+
+.calendarBarChart table{width: 100%;}
+.calendars td div{
+	height: 49px;
+	width: 83px;
+}
+.calendars td{
+	border: 1px solid #A3AFC1;
+	position: relative;
+}
+
+	.calendars label{
+		display: block;
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0;
+		cursor: pointer;
+		border: 1px solid red;
+	}
+
+	.calendars input{
+		display: none;
+	}
+
+	.dayNumeral{
+		position: absolute;
+		top: 0;
+		right: 3px;
+		font-weight: bold;
+	}
+
+
+	.calendars table{
+		border-collapse: collapse;
+	}
+
+	tr.calRow td.hasPrice{
+		background-color: #4CDBFF;
+	}
+
+	.noPrice{
+		background: #EEF2F6;
+	}
+
+	tr.calRow td.hasPrice.selected{
+		background-color: #19335F;
+		color: #ffffff;
+	}
+
+	tr td.hasPrice.minValue{
+		background: orange;
+		color: #FFFFFF;
+	}
+
+	tr td p{
+		margin: 0;
+	}
+
+	tr td:nth-child(6),
+	tr td:last-child{
+		background-color: #CDE8F8;
+	}
+
+	.cheapestMsg, .selectedMsg{
+		display: none;
+	}
+
+	.selected .selectedMsg{
+		display: block;
+		font-size: 0.8em;
+	}
+	.minValue .cheapestMsg{
+		display: block;
+	}
+
+	.price{
+		position: absolute;
+		bottom: 10px;
+	}
+
+	.price .value{
+		font-weight: bold;
+	}
+
+	</style>
+
+	<script src="http://codeorigin.jquery.com/jquery-2.0.3.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+	<script src="libs/moment.min.js"></script>
+
+	<script>
+		window.koChart = koChart = window.koChart || {};
+	</script>
+	
+	<script src="koChart.providers.js"></script>
+	<script src="koChart.core.js"></script>
+	<script src="koChart.ui.js"></script>
+<script>
+
+
+
+</script>
+
+	<script>
+	var undef = undefined;
+	var CalendarView = function () {
+		var self, firstDayOfWeek, now, chartAxisProvider, outboundChart, outboundDate, inboundDate, outboundWeekGroups, vm, chartCache;
+
+		self = this;
+		self.charts = null;
+		self.setSelectedDay = null;
+		self.isReturnFlight = true;
+		self.ui = null;
+		
+		// Private methods
+		function padDays(firstDayName, date, collection)
+		{
+			var dayValues, padding, firstDayOfDate, daysToPad, i;
+
+			dayValues = {
+				Mon: 1,
+				Tue: 2,
+				Wed: 3,
+				Thu: 4,
+				Fri: 5,
+				Sat: 6,
+				Sun: 7
+			};
+
+			padding = [];
+
+			// Set the day to the 1st of the month and get the day name
+			firstDayOfDate = date.date(1).format("ddd");
+			daysToPad = dayValues[firstDayOfDate] - dayValues[firstDayName];
+
+			for(i = 1; i <= daysToPad; i++)
+			{
+				padding.push(null);
+			}
+
+			return padding.concat(collection);
+		}
+
+		// Ensure that the last week group has a full collection of days
+		function padWeekGroups(weekGroups)
+		{
+			var lastWeekGroup, missingItemsCount, i;
+			
+			lastWeekGroup = weekGroups[weekGroups.length - 1]
+			missingItemsCount = 7 - lastWeekGroup.length;
+			
+			for(i = 0; i < missingItemsCount; i += 1)
+			{
+				lastWeekGroup.push(null);
+			}
+
+			return weekGroups;
+		}
+
+		function createWeekGroups(chart, date)
+		{
+			var daysPadded, weekGroups;
+			
+			daysPadded = padDays(firstDayOfWeek, date, chart.getBars());
+			weekGroups = daysPadded.chunk(7);
+			weekGroups = padWeekGroups(weekGroups);
+
+			return weekGroups;
+		}
+
+		Array.prototype.chunk = function(chunkSize) {
+			var r, i;
+		    r = [];
+		    for (i=0; i<this.length; i+=chunkSize)
+		    {
+		        r.push(this.slice(i,i+chunkSize));
+		    }
+		    return r;
+		}
+
+		self.setAsSelectedDate = function ($parent, data) {
+			var clone = $parent.mo().clone();
+			clone.date(data.xAxisValue.value);
+            $parent.selectedDate(clone);
+            $parent.day(data.xAxisValue.value);
+            $parent.month($parent.mo().month());
+            return true;
+        };
+
+		/*self.setSelectedDay = function ($parent, $data) {
+			// Only allow selection of dates with prices.
+			if($data.yAxisValue() != null)
+			{
+				$parent.selectedDate($data.xAxisValue.value);
+			}
+		};*/
+
+		// Public methods
+		self.initialise = function(){
+			var originIata, destIata, departureDay, departStart, returnStart, ajaxEndpoint;
+			
+			self.ui = new koChart.ui();
+
+			// Kill the animation for this type of chart view.
+			self.ui.animateMonthChange = function(){ return true; };
+
+			ajaxEndpoint = "data/jsonSample.json";
+
+			firstDayOfWeek = "Mon";
+			now = moment();
+			chartAxisProvider = koChart.ChartAxisProviders.monthChartAxisProvider(now);
+			outboundChart = new koChart.Chart(chartAxisProvider);
+			inboundChart = new koChart.Chart(chartAxisProvider);
+
+			outboundDate = now.clone();
+			inboundDate = now.clone().add("month", 2);
+
+			outboundWeekGroups = createWeekGroups(outboundChart, outboundDate);
+			inboundWeekGroups = createWeekGroups(inboundChart, inboundDate);
+
+			self.charts = {
+				outbound: {
+					c: ko.observable(outboundChart),
+                    b: ko.observable(outboundChart.getBars()),
+                    mo: ko.observable(outboundDate),
+                    prevMo: null,
+                    day: ko.observable(outboundDate.date()),
+                    month: ko.observable(outboundDate.month()),
+                    selectedDate: ko.observable(outboundDate),
+                    selectedPrice: ko.observable(0),
+                    weekGroups: ko.observable(outboundWeekGroups)
+				},
+				inbound: {
+					c: ko.observable(inboundChart),
+					b: ko.observable(inboundChart.getBars()),
+					mo: ko.observable(inboundDate),
+					prevMo: null,
+					day: ko.observable(inboundDate.date()),
+					month: ko.observable(inboundDate.month()),
+					selectedDate: ko.observable(inboundDate),
+					selectedPrice: ko.observable(0),
+					weekGroups: ko.observable(inboundWeekGroups)
+				}
+			};
+
+			self.charts.totalPrice = ko.computed(function () {
+                var price = self.charts.outbound.selectedPrice();
+                
+                if (self.isReturnFlight) {
+                    price += self.charts.inbound.selectedPrice();
+                }
+                return price;
+            });
+
+			var updateWeekGroupsCallback = function(vm, valMoment)
+			{
+				vm.weekGroups(createWeekGroups(vm.c(), valMoment));
+			}
+
+			self.ui.updateChart(ajaxEndpoint, outboundDate, "MAN", "LON", self.charts.outbound, $("#outboundChart"), updateWeekGroupsCallback);
+			self.ui.updateChart(ajaxEndpoint, inboundDate, "LON", "MAN", self.charts.inbound, $("#inboundChart"), updateWeekGroupsCallback);
+			
+			// Subscriptions:
+
+			// Record previous month value to compare against later. Used to determine animation slide direction.
+            self.charts.outbound.mo.subscribe(function (value) { self.charts.outbound.prevMo = value; }, null, "beforeChange");
+            self.charts.inbound.mo.subscribe(function (value) { self.charts.inbound.prevMo = value; }, null, "beforeChange");
+
+            self.charts.outbound.mo.subscribe(
+            	function (value) { self.ui.updateChart(ajaxEndpoint, value, "MAN", "LON", self.charts.outbound, $("#outboundChart"), updateWeekGroupsCallback); 
+            });
+            self.charts.inbound.mo.subscribe(
+            	function (value) { self.ui.updateChart(ajaxEndpoint, value, destIata, originIata, self.charts.inbound, $("#inboundChart"), updateWeekGroupsCallback); 
+            });
+
+			// Bindings
+			ko.bindingHandlers.isSelected = {
+				update: function(element, valueAccessor, allBindings, viewModel, bindingContext)
+				{
+					var mainParent = bindingContext.$parents[bindingContext.$parents.length - 2];
+
+					var selectedDate = mainParent.selectedDate();
+					if(viewModel != null)
+					{
+						if(viewModel.xAxisValue.value === selectedDate.date() && mainParent.mo().month() === mainParent.month())
+						{
+
+							$(element).addClass("selected");
+						}
+						else
+						{
+							$(element).removeClass("selected");
+						}
+					}
+				}
+			}
+
+			/*jslint unparam: true*/
+            ko.bindingHandlers.handleChange = {
+                init: function (element, valuseAccessor, allBindings, viewModel, bindingContext) {
+                    var vm, elem, newDate;
+                    vm = bindingContext.$parents[bindingContext.$parents.length - 2];
+
+                    $(element).change(function () {
+                        elem = $(this);
+                        newDate = vm.mo().clone().date(elem.val());
+                        vm.selectedPrice(elem.data("price"));
+                        vm.selectedDate(newDate);
+                    });
+                },
+
+                update: function (element, valuseAccessor, allBindings, viewModel, bindingContext) {
+                    // Set the initial value of selectedPrice.
+                    var vm = bindingContext.$parents[bindingContext.$parents.length - 2];
+                    if (viewModel.xAxisValue.value === vm.day()) {
+                        vm.selectedPrice(viewModel.yAxisValue());
+                    }
+                }
+            };
+
+			self.submitSearch = function(){
+				var outDate = self.charts.outbound.mo().date(self.charts.outbound.selectedDate());
+				var inDate = self.charts.inbound.mo().date(self.charts.inbound.selectedDate());
+
+				console.log(outDate);
+				console.log(inDate);
+			}
+
+			ko.applyBindings(self);
+		}
+	};
+
+
+	$((new CalendarView()).initialise);
+	</script>	
+</head>
+<body>
+
+<script type="text/html" id="calChart-template">
+<div class="calendarNav">
+    <button class="prevMonth" data-bind="click: $parent.ui.viewPreviousDate, isDisabled: -1">&lt;</button>
+    <span data-bind="text: mo().format('MMMM YYYY')"></span>
+    <button class="nextMonth" data-bind="click: $parent.ui.viewNextDate, isDisabled: 1">&gt;</button>
+</div>
+
+<div class="barSlider">
+<table>
+	<thead>
+		<tr>
+			<th>M</th>
+			<th>T</th>
+			<th>W</th>
+			<th>T</th>
+			<th>F</th>
+			<th>S</th>
+			<th>S</th>
+		</tr>
+	</thead>
+	<tbody class="calBars" data-bind="foreach: weekGroups()">
+		<tr data-bind="foreach: $data" class="calRow">
+			<!-- ko if: $data != null && $data.yAxisValue() > 0 -->
+			<td data-bind="isSelected: $data.xAxisValue.value, isMinValue: $data.yAxisValue()" class="hasPrice">
+				<div>
+					<label data-bind="attr: {for: 'calRad' + $parentContext.$index().toString() + $index().toString()}">
+						<span data-bind="text: $data.xAxisValue.value" class="dayNumeral"></span>
+						<span class="selectedMsg">Your travel date</span>
+						<span class="cheapestMsg">Cheapest <span class="icon">&nbsp;</span></span>
+						<span class="price">
+							<span data-bind="price: $data.yAxisValue()"></span>
+							pp
+						</span>
+					</label>
+
+					<input 
+					type="radio" 
+					name="calRad" 
+					data-bind="handleChange: true, value: $data.xAxisValue.value, attr: {id: 'calRad' + $parentContext.$index().toString() + $index().toString() }" />
+				</div>
+			</td>
+			<!-- /ko -->
+
+			<!-- ko if: $data === null || $data.yAxisValue() === null -->
+				<td class="noPrice">
+					<!-- ko if: $data != null && $data.xAxisValue != null -->
+					<span data-bind="text: $data.xAxisValue.value" class="dayNumeral"></span>
+					<!-- /ko -->
+				</td>
+			<!-- /ko -->
+		</tr>
+	</tbody>
+</table>
+</div>
+</script>
+<section class="calendars">
+	<article class="calendarBarChart" id="outboundChart" data-bind="template: {name: 'calChart-template', data: charts.outbound }"></article>
+	<article class="calendarBarChart" id="inboundChart" data-bind="template: {name: 'calChart-template', data: charts.inbound }"></article>
+
+	<article id="summaryForm">
+        <div class="summary">
+            <div class="dates" data-bind="css: isReturnFlight ? 'summaryWithReturn' : 'summaryNoReturn'">
+                <p>Depart <span data-bind="text: charts.outbound.selectedDate().format('DD/MM/YYYY')"></span>: <span data-bind="price: charts.outbound.selectedPrice()"></span><span class="priceUnit">pp</span></p>
+                <p data-bind="visible: isReturnFlight">Return <span data-bind="text: charts.inbound.selectedDate().format('DD/MM/YYYY')"></span>: <span data-bind="price: charts.inbound.selectedPrice()"></span><span class="priceUnit">pp</span></p>
+            </div>
+            <p class="summaryTotal">Total: <span data-bind="price: charts.totalPrice()"></span><span class="priceUnit">pp</span></p>
+        </div>
+
+        <div class="group group-buttons clearfix showFlights">
+            <a class="cfui-button button-search" data-bind="click: submitSearch" href="#"><span class="inner"><span class="text"><span class="label">Show flights</span><span class="symbol">&gt;</span></span><sup>&nbsp;</sup></span></a>
+        </div>
+    </article>
+</section>
+
+</body>
+</html>
