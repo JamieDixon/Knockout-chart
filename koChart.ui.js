@@ -1,14 +1,30 @@
-koChart.ui = function () {
-	var self = this;
-	
-	self.chartLoading = function (chartDom) {
+/*jslint devel: true */
+/*jslint browser: true, nomen: true */
+/*global jQuery, ko, moment, koChart */
+
+(function ($, ko, moment, koChart) {
+    "use strict";
+    koChart = koChart || {};
+
+    koChart.Ui = function (uiSettings) {
+        var self, undef, chartCache;
+
+        self = this;
+        undef = undefined;
+        chartCache = {};
+
+        self.settings = $.extend({
+            updateChartAjaxUrl: "data/jsonSample.json"
+        }, uiSettings);
+
+        self.chartLoading = function (chartDom) {
             if (chartDom !== undef) {
                 var loading = $("<div/>");
                 loading.addClass("loading");
                 chartDom.find(".barSlider").prepend(loading);
                 chartDom.find("button").attr("disabled", "disabled");
             }
-        }
+        };
 
         self.chartFinishedLoading = function (chartDom) {
             // The timeout should be the same time as it takes to perform the animation.
@@ -18,19 +34,19 @@ koChart.ui = function () {
                     chartDom.find(".loading").remove();
                 }, 1000);
             }
-        }
+        };
 
         self.cacheChart = function (cacheKey, chart) {
             chartCache[cacheKey] = chart;
-        }
+        };
 
         self.getCachedChart = function (cacheKey) {
             return chartCache[cacheKey];
-        }
+        };
 
         self.generateChartCacheKey = function (originIataCode, destIataCode, moDate) {
             return originIataCode + destIataCode + moDate.month().toString() + moDate.year().toString();
-        }
+        };
 
         self.animateMonthChange = function (slideDirection, chartDom) {
             var current, clone, hideAnimation, showAnimation;
@@ -61,16 +77,14 @@ koChart.ui = function () {
 
             // Bring back the propper chart into view.
             current.animate(showAnimation, 1000);
-        }
+        };
 
-		self.updateChart = function (ajaxEndpoint, value, originIataCode, destIataCode, vm, chartDom, callBack)
-		{
-			var newChart, valMoment, start, end, cacheKey, slideDir, today, departDay, cachedChart;
+        self.updateChart = function (value, originIataCode, destIataCode, vm, chartDom, callBack) {
+            var newChart, valMoment, start, end, cacheKey, slideDir, today, departDay, cachedChart;
 
             self.chartLoading(chartDom);
             valMoment = moment(value);
             today = moment();
-            chartCache = {};
 
             // Are we searching for a flight departing this month? If so, set todays day as the first search day we're interested in.
             departDay = valMoment.month() === today.month() ? today.date() : 1;
@@ -86,7 +100,7 @@ koChart.ui = function () {
 
             if (cachedChart === undef || cachedChart === null) {
                 /*$.get("/search/bymonthvalues"*/
-                $.get(ajaxEndpoint, { originIataCode: originIataCode, destIataCode: destIataCode, startDateUnix: start.unix().toString(), endDateUnix: end.unix().toString() })
+                $.get(self.settings.updateChartAjaxUrl, { originIataCode: originIataCode, destIataCode: destIataCode, startDateUnix: start.unix().toString(), endDateUnix: end.unix().toString() })
                     .done(function (data) {
                         if (chartDom !== undef) {
                             self.animateMonthChange(slideDir, chartDom);
@@ -108,27 +122,25 @@ koChart.ui = function () {
                     });
                 return;
             }
-            else {
 
-                if (chartDom !== undef) {
-                    animateMonthChange(slideDir, chartDom);
-                    chartFinishedLoading(chartDom);
-                }
-
-                vm.c(cachedChart);
-                vm.b(cachedChart.getBars());
+            if (chartDom !== undef) {
+                self.animateMonthChange(slideDir, chartDom);
+                self.chartFinishedLoading(chartDom);
             }
-		}
 
-		self.viewNextDate = function (chart) {
-        	return self.changeDate(chart, 1);
-    	};
+            vm.c(cachedChart);
+            vm.b(cachedChart.getBars());
+        };
 
-    	self.viewPreviousDate = function (chart) {
-        	return self.changeDate(chart, -1);
-    	};
+        self.viewNextDate = function (chart) {
+            return self.changeDate(chart, 1);
+        };
 
-    	self.changeDate = function (chart, monthsToAdd) {
+        self.viewPreviousDate = function (chart) {
+            return self.changeDate(chart, -1);
+        };
+
+        self.changeDate = function (chart, monthsToAdd) {
             var now, then, clone;
             now = moment();
             then = moment().add("year", 1);
@@ -143,46 +155,46 @@ koChart.ui = function () {
             chart.mo(clone);
 
             return true;
-    	};
-
-        ko.bindingHandlers.price = {
-            update: function(element, valueAccessor, allBindingsAccessor) {
-                var $element = $(element);
-                var value = ko.unwrap(valueAccessor());
-                var convertedValue = Math.round(value);
-
-                $element
-                  .addClass("currency")
-                  .attr("data-type", "price")
-                  .attr("data-baseValue", value)
-                  .html("<span class=\"symbol\">R </span><span class=\"value\">" + convertedValue + "</span>");
-                }
         };
 
+        ko.bindingHandlers.price = {
+            update: function (element, valueAccessor) {
+                var $element, value, convertedValue;
+                $element = $(element);
+                value = ko.unwrap(valueAccessor());
+                convertedValue = Math.round(value);
+
+                $element
+                    .addClass("currency")
+                    .attr("data-type", "price")
+                    .attr("data-baseValue", value)
+                    .html("<span class=\"symbol\">R </span><span class=\"value\">" + convertedValue + "</span>");
+            }
+        };
+
+        /*jslint unparam: true*/
         ko.bindingHandlers.isMinValue = {
             update: function (element, valueAccessor, allBindings, barViewModel, bindingContext) {
-                var cheapestClass = "minValue";
+                var cheapestClass, mainParent, barsWithMinValue;
+                cheapestClass = "minValue";
 
                 // Get the object one below the $root.
-                var mainParent  = bindingContext.$parents[bindingContext.$parents.length - 2];
+                mainParent = bindingContext.$parents[bindingContext.$parents.length - 2];
 
-               $(element).removeClass(cheapestClass);
+                $(element).removeClass(cheapestClass);
 
                 if (valueAccessor() === mainParent.c().metadata.minValue()) {
 
                     // Other bars that are also have the min value.
-                    var barsWithMinValue = mainParent.b().filter(function (bar) {
+                    barsWithMinValue = mainParent.b().filter(function (bar) {
                         return bar.hasMinValue;
                     });
 
-                    $.each(barsWithMinValue, function(bar){
+                    $.each(barsWithMinValue, function (bar) {
                         bar.hasMinValue = false;
-                    })
+                    });
 
                     barViewModel.hasMinValue = true;
-
-                    console.log(barsWithMinValue);
-
                     $(element).addClass(cheapestClass);
 
                     return true;
@@ -191,4 +203,78 @@ koChart.ui = function () {
                 return false;
             }
         };
+
+        /*jslint unparam: true*/
+        ko.bindingHandlers.isSelectedDay = {
+            update: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
+                var mainParent, elem;
+                mainParent = bindingContext.$parents[bindingContext.$parents.length - 2];
+                elem = $(element);
+
+                if (viewModel !== null) {
+                    if (viewModel.xAxisValue.value == mainParent.day() && mainParent.mo().month() == mainParent.month()) {
+                        if (elem.is("input")) {
+                            elem.attr("checked", "true");
+                        }
+
+                        $(element).addClass("selectedDay");
+                    } else {
+                        $(element).removeClass("selectedDay");
+                    }
+                }
+            }
+        };
+
+        /*jslint unparam: true*/
+        ko.bindingHandlers.handleChange = {
+            init: function (element, valuseAccessor, allBindings, viewModel, bindingContext) {
+                var vm, elem, newDate;
+                vm = bindingContext.$parents[bindingContext.$parents.length - 2];
+
+                $(element).change(function () {
+                    elem = $(this);
+                    newDate = vm.mo().clone().date(elem.val());
+                    vm.day(elem.val());
+                    vm.month(newDate.month());
+                    vm.selectedPrice(elem.data("price"));
+                    vm.selectedDate(newDate);
+                });
+            },
+
+            update: function (element, valuseAccessor, allBindings, viewModel, bindingContext) {
+                // Set the initial value of selectedPrice.
+                var vm = bindingContext.$parents[bindingContext.$parents.length - 2];
+                if (viewModel.xAxisValue.value === vm.day()) {
+                    vm.selectedPrice(viewModel.yAxisValue());
+                }
+            }
+        };
+
+        /*jslint unparam: true*/
+        ko.bindingHandlers.isDisabled = {
+            update: function (element, valueAccessor, allBindings, viewModel) {
+                var now, then, valueUnwrapped, fwdValue, bakValue, disabledClass;
+                fwdValue = 1;
+                bakValue = -1;
+                disabledClass = "disabled";
+
+                valueUnwrapped = ko.unwrap(valueAccessor);
+                now = moment();
+                then = viewModel.mo();
+
+                $(element).removeClass(disabledClass);
+
+                // If we're looking at the back button
+                if (valueUnwrapped() === bakValue && now.month() === then.month()) {
+                    $(element).addClass(disabledClass);
+                } else {
+                    if (valueUnwrapped() === fwdValue && then >= now.add("month", 11)) {
+                        $(element).addClass(disabledClass);
+                    } else {
+                        $(element).removeClass(disabledClass);
+                    }
+                }
+            }
+        };
     };
+}(jQuery, ko, moment, koChart));

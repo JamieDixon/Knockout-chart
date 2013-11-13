@@ -1,6 +1,6 @@
 /*jslint devel: true */
 /*jslint browser: true, nomen: true */
-/*global jQuery, ko */
+/*global jQuery, ko, koChart */
 
 (function ($, ko, koChart) {
     "use strict";
@@ -103,7 +103,7 @@
                 allActive[0].displayXAxisValue(true);
                 self.visibleXAxisValues.push({
                     bar: allActive[0],
-                    cssClass: 'xAxisFirst'
+                    cssClass: "xAxisFirst"
                 });
 
                 // Add intermediate values
@@ -121,7 +121,7 @@
 
                         self.visibleXAxisValues.push({
                             bar: item,
-                            cssClass: ''
+                            cssClass: ""
                         });
                     }
                 }
@@ -133,7 +133,7 @@
 
                     self.visibleXAxisValues.push({
                         bar: lastItem,
-                        cssClass: 'xAxisLast'
+                        cssClass: "xAxisLast"
                     });
                 }
             }
@@ -177,7 +177,7 @@
         }
 
         self.resizeBarsAsPercentage = function (percentage) {
-            $(".bar", self.chartContainer).css('width', percentage.toString() + "%");
+            $(".bar", self.chartContainer).css("width", percentage.toString() + "%");
         };
 
         // Hide zero values bars to the left and right of the first/last non zero bar.
@@ -226,7 +226,7 @@
 
         function isFunction(functionToCheck) {
             var getType = {};
-            return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+            return functionToCheck && getType.toString.call(functionToCheck) === "[object Function]";
         }
 
         function activateBarsBetweenActiveBars() {
@@ -334,7 +334,7 @@
                 var nextBarIndex = index < bars.length - 1 ? index + 1 : index;
                 return chartSettings.xAxisKeyMatchComparer.equals(xAxisReference, item.xAxisValue.value, bars[nextBarIndex].xAxisValue.value);
             });
-            
+
             // Set the new value for this bar. Since everything is byRef in JS this will ammend the self.bars collection.
             if (matchingBars.length > 0) {
                 // If the bar we're adding is about to become active for the first time, incriment the activeBars count.
@@ -379,7 +379,6 @@
         };
 
         /* Custom bindings */
-        
         ko.bindingHandlers.variableWidthPercent = {
             update: function (element, valueAccessor, allBindings, viewModel) {
                 if (valueAccessor) {
@@ -471,7 +470,7 @@
         }
 
         initialise();
-    };  
+    };
 
     // Defines how a chart compares keys when inserting new bars
     koChart.ChartKeyMatchComparers = {

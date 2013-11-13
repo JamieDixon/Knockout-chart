@@ -1,0 +1,157 @@
+.calendarNav {
+    width: 44%;
+    margin: 0 auto;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 20px;
+    font-family: arial;
+    padding-left: 13%;
+}
+
+    .calendarNav .disabled {
+        background: #eef2f6;
+    }
+
+    .calendarNav button {
+        background: #ffe789;
+        border: 1px solid #98a3b6;
+        border-radius: 4px;
+        width: 26px;
+        line-height: 1em;
+        padding: 1px;
+    }
+
+        .calendarNav button:hover {
+            color: #ffffff;
+            background-color: #4e90ff;
+        }
+
+    .calendarNav span {
+        display: inline-block;
+        /*width: 200px;*/
+        width: 62%;
+        text-align: center;
+    }
+    
+ .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    opacity: 0.5;
+    background: #FFFFFF url("images/ajax-loader.gif") 50% 55% no-repeat;
+}
+
+.charts article.summaryForm {
+    color: #FFFFFF;
+    height: 87px;
+    width: 100%;
+    border: 1px solid #000080;
+    border-bottom-width: 2px;
+    border-left: none;
+    border-right: none;
+    position: relative;
+    padding-top: 0;
+    padding: 0;
+    background: #eef2f6;
+    margin-top: 55px;
+    font-size: 0.9em;
+}
+.summaryForm{ position: relative ;}
+.summaryForm p {
+    width: 35%;
+    margin: 0;
+}
+
+.summaryForm .summary {
+    margin: 0;
+    background: #078cdd;
+    width: 55%;
+    height: 100%;
+    float: left;
+}
+
+.summaryForm .summaryNoReturn {
+    top: 37%;
+}
+
+.dates {
+    width: 100%;
+    position: absolute;
+    top: 21%;
+    left: 3%;
+}
+
+    .dates,
+    .dates .value,
+    .summaryTotal .value {
+        font-weight: bold;
+    }
+
+        .dates span,
+        .priceUnit {
+            font-weight: normal;
+        }
+
+        .dates p {
+            margin-bottom: 5px;
+        }
+
+.summaryForm .summaryTotal {
+    position: absolute;
+    left: 34%;
+    top: 29%;
+    font-size: 1.4em;
+}
+
+.summaryForm:after {
+    content: " ";
+    width: 0;
+    height: 0;
+    border-top: 44px solid transparent;
+    border-bottom: 44px solid transparent;
+    border-left: 81px solid #078cdd;
+    display: block;
+    float: left;
+}
+
+.showFlights {
+    position: absolute;
+    left: 432px;
+    top: 23px;
+    width: 212px;
+    height: 41px;
+    font-size: 0.7em;
+}
+
+.charts label {
+    font-size: 0.8em;
+}
+
+.charts,
+.charts label,
+.charts span {
+    font-family: tahoma, Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.charts {
+    margin-bottom: 50px;
+}
+
+    .charts h2 {
+        font-size: 0.8em;
+    }
+
+    .charts article {
+        border-top: 1px solid #000080;
+        padding-top: 15px;
+        margin-top: 15px;
+        margin-bottom: 46px;
+    }
+
+    .charts h3 span {
+        font-size: 0.8em;
+    }
